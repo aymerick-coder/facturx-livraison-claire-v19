@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo noupdate="1">
+
+    <!-- Scheduled action: scan watched folders for incoming Factur-X files.
+         Active by default but does NOTHING unless a facturx.config has
+         watched_folder_enabled=True and a valid path (see the method
+         _cron_scan_watched_folders in facturx_incoming.py).
+         This way, the user only has to fill the config — no need to
+         activate the cron manually. -->
+
+    <record id="ir_cron_facturx_scan_watched_folders" model="ir.cron">
+        <field name="name">Factur-X: scanner les dossiers surveillés</field>
+        <field name="model_id" ref="model_facturx_incoming"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_scan_watched_folders()</field>
+        <field name="interval_number">10</field>
+        <field name="interval_type">minutes</field>
+        <field name="active" eval="True"/>
+    </record>
+
+</odoo>

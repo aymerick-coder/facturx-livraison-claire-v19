@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="facturx_send_wizard_form" model="ir.ui.view">
+        <field name="name">facturx.send.wizard.form</field>
+        <field name="model">facturx.send.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Envoyer Factur-X">
+                <group>
+                    <field name="invoice_ids" widget="many2many_tags" readonly="1"/>
+                    <field name="send_method"/>
+                </group>
+                <footer>
+                    <button name="action_send" string="Envoyer" type="object" class="btn-primary"/>
+                    <button string="Annuler" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_facturx_send_wizard" model="ir.actions.act_window">
+        <field name="name">Envoyer Factur-X</field>
+        <field name="res_model">facturx.send.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="account.model_account_move"/>
+        <field name="binding_view_types">list</field>
+    </record>
+
+</odoo>

@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- Add Factur-X fields and buttons to invoice form -->
+    <record id="view_move_form_facturx" model="ir.ui.view">
+        <field name="name">account.move.form.facturx</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <!-- Factur-X generation button -->
+            <xpath expr="//header" position="inside">
+                <!-- Champ caché requis pour la condition d'invisibilité du bouton Chorus -->
+                <field name="chorus_can_send" invisible="1"/>
+                <button name="action_generate_facturx"
+                        string="Générer Factur-X"
+                        type="object"
+                        class="btn-primary"
+                        invisible="move_type not in ('out_invoice', 'out_refund') or state != 'posted'"
+                        groups="account.group_account_invoice"/>
+                <button name="action_generate_facturx_pdf"
+                        string="Générer PDF Factur-X"
+                        type="object"
+                        class="btn-secondary"
+                        invisible="move_type not in ('out_invoice', 'out_refund') or facturx_generated == False"
+                        groups="account.group_account_invoice"/>
+                <button name="action_send_chorus_pro"
+                        string="Envoyer vers Chorus Pro"
+                        type="object"
+                        class="btn-secondary"
+                        help="Dépose la facture Factur-X sur Chorus Pro via l'API PISTE. Nécessite des identifiants configurés."
+                        invisible="not chorus_can_send or chorus_status == 'sent'"
+                        groups="account.group_account_invoice"/>
+                <button name="action_reset_chorus_pro"
+                        string="🔄 Réinitialiser Chorus Pro"
+                        type="object"
+                        class="btn-warning"
+                        help="Permet de relancer un envoi Chorus Pro après une annulation côté plateforme. ATTENTION : si la facture précédente n'a pas été annulée côté Chorus, le nouvel envoi sera rejeté pour doublon."
+                        confirm="Êtes-vous sûr ? Cette action permet un nouvel envoi vers Chorus Pro. À utiliser uniquement si l'envoi précédent a été annulé côté Chorus Pro, sinon le nouvel envoi sera rejeté pour doublon."
+                        invisible="chorus_status != 'sent'"
+                        groups="account.group_account_invoice"/>
+            </xpath>
+
+            <!-- Factur-X source link (vendor bills) -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_facturx_source" type="object"
+                        class="oe_stat_button" icon="fa-file-code-o"
+                        invisible="not facturx_incoming_id">
+                    <field name="facturx_incoming_id" widget="statinfo"
+                           string="Source Factur-X"/>
+                </button>
+            </xpath>
+
+            <!-- Factur-X tab -->
+            <xpath expr="//page[@id='other_tab']" position="after">
+                <page string="Factur-X" name="facturx_tab"
+                      invisible="move_type not in ('out_invoice', 'out_refund')">
+
+                    <!-- Bandeau d'erreur (visible uniquement si erreur) -->
+                    <div class="alert alert-danger" role="alert"
+                         invisible="facturx_status != 'error'">
+                        <strong>Erreur de génération Factur-X :</strong>
+                        <field name="facturx_error_message" nolabel="1" readonly="1"/>
+                    </div>
+
+                    <group>
+                        <!-- Bloc 1 : Statut Factur-X -->
+                        <group string="Statut Factur-X" name="facturx_status_group">
+                            <field name="facturx_status" widget="badge"
+                                   decoration-success="facturx_status == 'generated'"
+                                   decoration-info="facturx_status == 'sent'"
+                                   decoration-danger="facturx_status == 'error'"
+                                   decoration-muted="facturx_status == 'none'"/>
+                            <field name="facturx_profile" string="Profil"/>
+                            <field name="facturx_type_code" string="TypeCode UNTDID 1001"/>
+                            <field name="facturx_generated" string="XML généré"/>
+                        </group>
+
+                        <!-- Bloc 2 : Documents -->
+                        <group string="Documents" name="facturx_documents_group">
+                            <field name="facturx_xml"
+                                   string="Fichier XML"
+                                   filename="facturx_xml_filename"
+                                   invisible="not facturx_generated"/>
+                            <field name="facturx_xml_filename" invisible="1"/>
+                            <field name="facturx_pdf"
+                                   string="PDF Factur-X"
+                                   filename="facturx_pdf_filename"
+                                   invisible="not facturx_pdf"/>
+                            <field name="facturx_pdf_filename" invisible="1"/>
+                            <div colspan="2"
+                                 invisible="facturx_generated"
+                                 class="text-muted">
+                                Cliquez sur <strong>"Generate Factur-X"</strong>
+                                en haut de la facture pour générer les documents.
+                            </div>
+                        </group>
+                        <!-- Chorus Pro tracking group is added by facturx_chorus_pro -->
+                    </group>
+
+                    <separator string="Chorus Pro - Données B2G (spécifiques à cette facture)"/>
+                    <group>
+                        <group>
+                            <field name="chorus_pro_service_code"
+                                   placeholder="Code service Chorus Pro (laisser vide pour reprendre celui du client)"/>
+                            <field name="chorus_pro_engagement"
+                                   placeholder="Numéro EJ (laisser vide pour reprendre celui du client)"/>
+                        </group>
+                    </group>
+
+                    <separator string="Suivi Chorus Pro"
+                               invisible="chorus_status == 'not_sent' and not chorus_sent_id"/>
+                    <group invisible="chorus_status == 'not_sent' and not chorus_sent_id">
+                        <group>
+                            <field name="chorus_status" widget="badge"
+                                   decoration-success="chorus_status == 'sent'"
+                                   decoration-danger="chorus_status == 'error'"
+                                   decoration-muted="chorus_status == 'not_sent'"/>
+                            <field name="chorus_sent_id" readonly="1"/>
+                            <field name="chorus_sent_date" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="chorus_message" readonly="1" nolabel="1"/>
+                        </group>
+                    </group>
+
+                    <separator string="Données réforme 2026"/>
+
+                    <group>
+                        <!-- Bloc 3 : Données réforme 2026 -->
+                        <group name="facturx_reform_group">
+                            <field name="facturx_operation_type"
+                                   string="Type d'opération"/>
+                            <field name="facturx_payment_means_code"
+                                   string="Mode de paiement"/>
+                        </group>
+                        <group>
+                            <field name="facturx_legal_notes"
+                                   string="Mentions légales"
+                                   placeholder="Calculées automatiquement (motifs d'exonération + conditions). Modifiable."/>
+                        </group>
+                    </group>
+
+
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Factur-X status is visible in the form view Factur-X tab -->
+
+</odoo>

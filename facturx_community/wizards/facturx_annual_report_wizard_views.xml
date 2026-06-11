@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_facturx_annual_report_wizard_form" model="ir.ui.view">
+        <field name="name">facturx.annual.report.wizard.form</field>
+        <field name="model">facturx.annual.report.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Bilan annuel" delete="false">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>📊 Bilan annuel</h1>
+                        <p class="text-muted">
+                            Génère un rapport synthétique de l'exercice
+                            (volume, conformité, top clients, score PAF).
+                            À envoyer en janvier au cabinet comptable et au dirigeant.
+                        </p>
+                    </div>
+                    <group>
+                        <field name="company_id"/>
+                        <field name="year"/>
+                        <field name="generated" invisible="1"/>
+                    </group>
+                    <field name="report_html" widget="html" readonly="1"
+                           invisible="not generated"/>
+                </sheet>
+                <footer>
+                    <button name="action_generate_report" type="object"
+                            string="📄 Générer le bilan"
+                            class="btn-primary"
+                            invisible="generated"/>
+                    <button name="action_generate_report" type="object"
+                            string="🔄 Régénérer"
+                            class="btn-secondary"
+                            invisible="not generated"/>
+                    <button string="Fermer" class="btn-secondary"
+                            special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_facturx_annual_report_wizard" model="ir.actions.act_window">
+        <field name="name">Bilan annuel</field>
+        <field name="res_model">facturx.annual.report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

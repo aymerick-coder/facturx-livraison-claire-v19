@@ -1,0 +1,356 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- ================================================================== -->
+    <!-- SEARCH VIEW                                                        -->
+    <!-- ================================================================== -->
+    <record id="view_facturx_incoming_search" model="ir.ui.view">
+        <field name="name">facturx.incoming.search</field>
+        <field name="model">facturx.incoming</field>
+        <field name="arch" type="xml">
+            <search string="Rechercher factures reçues">
+                <field name="invoice_number"/>
+                <field name="seller_name"/>
+                <field name="seller_siret"/>
+                <field name="seller_vat"/>
+                <field name="partner_id"/>
+                <field name="source_filename"/>
+                <field name="source_email"/>
+                <separator/>
+                <filter name="filter_origin_manual" string="Upload manuel"
+                        domain="[('import_origin', '=', 'manual')]"/>
+                <filter name="filter_origin_email" string="Via Email"
+                        domain="[('import_origin', '=', 'email')]"/>
+                <filter name="filter_origin_folder" string="Via Dossier"
+                        domain="[('import_origin', '=', 'folder')]"/>
+                <filter name="filter_origin_api" string="Via API"
+                        domain="[('import_origin', '=', 'api')]"/>
+                <separator/>
+                <filter name="filter_to_process" string="À traiter"
+                        domain="[('state', 'in', ('draft', 'parsed', 'matched', 'ready'))]"/>
+                <filter name="filter_draft" string="À analyser"
+                        domain="[('state', '=', 'draft')]"/>
+                <filter name="filter_parsed" string="Analysé"
+                        domain="[('state', 'in', ('parsed', 'matched'))]"/>
+                <filter name="filter_ready" string="Prêt"
+                        domain="[('state', '=', 'ready')]"/>
+                <filter name="filter_created" string="Facture créée"
+                        domain="[('state', '=', 'created')]"/>
+                <separator/>
+                <filter name="filter_error" string="Erreurs"
+                        domain="[('state', '=', 'error')]"/>
+                <filter name="filter_duplicate" string="Doublons"
+                        domain="[('state', '=', 'duplicate')]"/>
+                <separator/>
+                <filter name="filter_xml_invalid" string="XML invalide"
+                        domain="[('xml_valid', '=', False), ('state', '!=', 'draft')]"/>
+                <filter name="filter_no_partner" string="Fournisseur non associé"
+                        domain="[('partner_id', '=', False), ('state', 'not in', ('draft', 'error'))]"/>
+                <separator/>
+                <filter name="filter_date" string="Date de facture" date="invoice_date"/>
+                <group>
+                    <filter name="group_state" string="Statut"
+                            context="{'group_by': 'state'}"/>
+                    <filter name="group_partner" string="Fournisseur"
+                            context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_seller" string="Nom du vendeur"
+                            context="{'group_by': 'seller_name'}"/>
+                    <filter name="group_date" string="Date de facture"
+                            context="{'group_by': 'invoice_date:month'}"/>
+                    <filter name="group_format" string="Format"
+                            context="{'group_by': 'source_type'}"/>
+                    <filter name="group_origin" string="Origine"
+                            context="{'group_by': 'import_origin'}"/>
+                    <filter name="group_company" string="Société"
+                            context="{'group_by': 'company_id'}"
+                            groups="base.group_multi_company"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ================================================================== -->
+    <!-- FORM VIEW                                                          -->
+    <!-- ================================================================== -->
+    <record id="view_facturx_incoming_form" model="ir.ui.view">
+        <field name="name">facturx.incoming.form</field>
+        <field name="model">facturx.incoming</field>
+        <field name="arch" type="xml">
+            <form string="Facture Factur-X reçue">
+                <header>
+                    <button name="action_parse" string="Analyser" type="object"
+                            class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_parse" string="Ré-analyser" type="object"
+                            invisible="state not in ('error', 'parsed')"/>
+                    <button name="action_create_invoice" string="Créer facture fournisseur" type="object"
+                            class="btn-primary"
+                            invisible="state not in ('parsed', 'matched', 'ready')"/>
+                    <button name="action_force_create" string="Forcer la création (doublon)" type="object"
+                            class="btn-warning"
+                            invisible="state != 'duplicate'"/>
+                    <button name="action_view_invoice" string="Voir la facture" type="object"
+                            class="btn-primary"
+                            invisible="not move_id"
+                            icon="fa-external-link"/>
+                    <button name="action_reset" string="Réinitialiser" type="object"
+                            invisible="state in ('draft', 'created')"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,parsed,matched,ready,created"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_invoice" type="object"
+                                class="oe_stat_button" icon="fa-file-text-o"
+                                invisible="not move_id">
+                            <field name="move_id" widget="statinfo" string="Facture"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="invoice_number" placeholder="Numéro de facture"/>
+                        </h1>
+                    </div>
+
+                    <!-- Alerts -->
+                    <div class="alert alert-danger" role="alert"
+                         invisible="not error_message">
+                        <strong>Erreur :</strong> <field name="error_message"/>
+                    </div>
+
+                    <div class="alert alert-warning" role="alert"
+                         invisible="state != 'duplicate'">
+                        <strong>Doublon détecté</strong>
+                        <br/>Motif : <field name="duplicate_reason"/>
+                        <br/>Original : <field name="duplicate_of_id"/>
+                    </div>
+
+                    <div class="alert alert-success" role="alert"
+                         invisible="not xml_valid">
+                        <strong>Conformité XML : VALIDE</strong> — Le XML Factur-X est conforme.
+                    </div>
+
+                    <div class="alert alert-warning" role="alert"
+                         invisible="xml_valid or state == 'draft'">
+                        <strong>Conformité XML : problèmes détectés</strong>
+                        <br/><field name="xml_validation_errors"/>
+                    </div>
+
+                    <div class="alert alert-info" role="alert"
+                         invisible="amounts_consistent or not amount_total">
+                        <strong>Avertissement :</strong> les montants sont incohérents
+                        (HT + TVA ≠ TTC)
+                    </div>
+
+                    <div class="alert alert-warning" role="alert"
+                         invisible="buyer_siret_match">
+                        <strong>Acheteur non conforme :</strong> le SIRET acheteur de cette facture
+                        ne correspond pas au SIRET de votre société. Cette facture ne
+                        vous est peut-être pas destinée.
+                    </div>
+
+                    <div class="alert alert-info" role="alert"
+                         invisible="lines_amount_consistent">
+                        <strong>Avertissement :</strong> la somme des totaux de lignes ne correspond pas
+                        au montant HT.
+                    </div>
+
+                    <!-- Main fields -->
+                    <group>
+                        <group string="Document">
+                            <field name="import_date"/>
+                            <field name="import_origin"/>
+                            <field name="source_email"
+                                   invisible="import_origin != 'email'"/>
+                            <field name="source_email_subject"
+                                   invisible="import_origin != 'email'"/>
+                            <field name="source_filename" string="Fichier"/>
+                            <field name="source_type"/>
+                            <field name="profile_label"/>
+                            <field name="profile" invisible="1"/>
+                            <field name="invoice_date"/>
+                            <field name="invoice_date_due"/>
+                            <field name="type_code_label" string="Type"/>
+                            <field name="type_code" groups="base.group_no_one"/>
+                            <field name="currency_code"/>
+                        </group>
+                        <group string="Fournisseur">
+                            <field name="seller_name"/>
+                            <field name="seller_siret"/>
+                            <field name="seller_vat"/>
+                            <field name="seller_city"/>
+                            <field name="partner_id"
+                                   readonly="state == 'created'"
+                                   options="{'no_create': True}"/>
+                            <field name="partner_match_method"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Acheteur">
+                            <field name="buyer_name"/>
+                            <field name="buyer_siret"/>
+                        </group>
+                        <group string="Montants">
+                            <field name="amount_untaxed"/>
+                            <field name="amount_tax"/>
+                            <field name="amount_total"/>
+                            <field name="amount_due"/>
+                            <field name="amounts_consistent" invisible="1"/>
+                            <field name="xml_valid" invisible="1"/>
+                            <field name="buyer_siret_match" invisible="1"/>
+                            <field name="lines_amount_consistent" invisible="1"/>
+                        </group>
+                    </group>
+
+                    <!-- Tabs -->
+                    <notebook>
+                        <page string="Lignes" name="lines">
+                            <field name="line_ids"
+                                   readonly="state == 'created'">
+                                <list editable="bottom">
+                                    <field name="line_number" string="#" optional="show"/>
+                                    <field name="description"/>
+                                    <field name="quantity"/>
+                                    <field name="price_unit"/>
+                                    <field name="tax_percent"/>
+                                    <field name="line_total"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Paiement / Références" name="payment_refs">
+                            <group>
+                                <group string="Paiement">
+                                    <field name="seller_iban"/>
+                                    <field name="seller_bic"/>
+                                </group>
+                                <group string="Références">
+                                    <field name="po_reference"
+                                           readonly="state == 'created'"/>
+                                    <field name="contract_reference"/>
+                                </group>
+                            </group>
+                            <group string="Notes" invisible="not notes">
+                                <field name="notes" nolabel="1" colspan="2"/>
+                            </group>
+                        </page>
+                        <page string="Fichier source" name="source">
+                            <group>
+                                <field name="source_file" filename="source_filename"/>
+                                <field name="xml_content" filename="xml_filename"/>
+                                <field name="xml_filename" invisible="1"/>
+                                <field name="source_hash" string="SHA-256"/>
+                            </group>
+                        </page>
+                        <page string="Journal technique" name="log"
+                              invisible="not technical_log"
+                              groups="base.group_no_one">
+                            <field name="technical_log" readonly="1"/>
+                        </page>
+                        <page string="Données brutes (JSON)" name="raw"
+                              invisible="not parsed_data"
+                              groups="base.group_no_one">
+                            <field name="parsed_data"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ================================================================== -->
+    <!-- LIST VIEW                                                          -->
+    <!-- ================================================================== -->
+    <record id="view_facturx_incoming_list" model="ir.ui.view">
+        <field name="name">facturx.incoming.list</field>
+        <field name="model">facturx.incoming</field>
+        <field name="arch" type="xml">
+            <list string="Factures Factur-X reçues"
+                  decoration-danger="state == 'error'"
+                  decoration-muted="state == 'created'"
+                  decoration-warning="state == 'duplicate'"
+                  multi_edit="1">
+                <field name="create_date" string="Importé" widget="date"
+                       optional="hide"/>
+                <field name="invoice_number"/>
+                <field name="invoice_date"/>
+                <field name="import_origin" widget="badge"
+                       decoration-info="import_origin == 'manual'"
+                       decoration-success="import_origin == 'email'"
+                       decoration-warning="import_origin == 'folder'"
+                       decoration-primary="import_origin == 'api'"/>
+                <field name="seller_name"/>
+                <field name="seller_siret" optional="hide"/>
+                <field name="amount_untaxed" optional="hide" sum="Total HT"/>
+                <field name="amount_total" sum="Total TTC"/>
+                <field name="currency_code" optional="hide"/>
+                <field name="source_type" optional="hide"/>
+                <field name="xml_valid" widget="boolean" string="Valide"
+                       optional="show"/>
+                <field name="partner_id" optional="show"/>
+                <field name="partner_match_method" optional="hide"/>
+                <field name="move_id" string="Facture" optional="show"/>
+                <field name="state" widget="badge"
+                       decoration-success="state in ('ready', 'created')"
+                       decoration-info="state in ('parsed', 'matched')"
+                       decoration-warning="state == 'duplicate'"
+                       decoration-danger="state == 'error'"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ================================================================== -->
+    <!-- SERVER ACTIONS (batch)                                             -->
+    <!-- ================================================================== -->
+
+    <!-- Batch parse -->
+    <record id="action_server_parse_multi" model="ir.actions.server">
+        <field name="name">Parse Selected</field>
+        <field name="model_id" ref="model_facturx_incoming"/>
+        <field name="binding_model_id" ref="model_facturx_incoming"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">action = records.action_parse_multi()</field>
+    </record>
+
+    <!-- Batch create invoices -->
+    <record id="action_server_create_invoice_multi" model="ir.actions.server">
+        <field name="name">Create Invoices</field>
+        <field name="model_id" ref="model_facturx_incoming"/>
+        <field name="binding_model_id" ref="model_facturx_incoming"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">action = records.action_create_invoice_multi()</field>
+    </record>
+
+    <!-- Batch reset -->
+    <record id="action_server_reset_multi" model="ir.actions.server">
+        <field name="name">Reset Selected</field>
+        <field name="model_id" ref="model_facturx_incoming"/>
+        <field name="binding_model_id" ref="model_facturx_incoming"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">records.action_reset()</field>
+    </record>
+
+    <!-- ================================================================== -->
+    <!-- WINDOW ACTION                                                      -->
+    <!-- ================================================================== -->
+    <record id="action_facturx_incoming" model="ir.actions.act_window">
+        <field name="name">Factures reçues</field>
+        <field name="res_model">facturx.incoming</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_facturx_incoming_search"/>
+        <field name="context">{'search_default_filter_to_process': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Aucune facture reçue
+            </p>
+            <p>
+                Utilisez <b>Factur-X → Importer une facture</b> pour importer des fichiers PDF ou XML,
+                ou importez une archive ZIP contenant plusieurs factures.
+            </p>
+        </field>
+    </record>
+
+</odoo>

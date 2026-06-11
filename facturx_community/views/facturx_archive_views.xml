@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="view_facturx_archive_tree" model="ir.ui.view">
+        <field name="name">facturx.archive.tree</field>
+        <field name="model">facturx.archive</field>
+        <field name="arch" type="xml">
+            <tree string="Archives légales"
+                  decoration-success="integrity_check_result == 'valid'"
+                  decoration-danger="integrity_check_result == 'altered'"
+                  decoration-warning="integrity_check_result == 'missing'"
+                  create="false">
+                <field name="archived_at"/>
+                <field name="move_id"/>
+                <field name="pdf_size_bytes" string="Taille (o)"/>
+                <field name="pdf_hash_sha256" string="SHA-256" optional="hide"/>
+                <field name="tsa_status" widget="badge"
+                       decoration-success="tsa_status == 'ok'"
+                       decoration-danger="tsa_status == 'failed'"
+                       decoration-muted="tsa_status == 'none'"/>
+                <field name="integrity_check_result" widget="badge"
+                       decoration-success="integrity_check_result == 'valid'"
+                       decoration-danger="integrity_check_result == 'altered'"/>
+                <field name="expires_at"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_facturx_archive_form" model="ir.ui.view">
+        <field name="name">facturx.archive.form</field>
+        <field name="model">facturx.archive</field>
+        <field name="arch" type="xml">
+            <form string="Archive légale" create="false" delete="false">
+                <header>
+                    <button name="action_request_tsa_timestamp"
+                            string="Demander horodatage officiel"
+                            type="object" class="btn-primary"
+                            invisible="tsa_status == 'ok'"/>
+                    <button name="action_verify_integrity"
+                            string="Vérifier l'intégrité"
+                            type="object"/>
+                    <field name="tsa_status" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>Archive légale</h1>
+                        <h2><field name="move_id" readonly="1"/></h2>
+                    </div>
+                    <group>
+                        <group string="PDF/A-3 archivé">
+                            <field name="pdf_attachment_id" readonly="1"/>
+                            <field name="pdf_size_bytes" readonly="1"/>
+                            <field name="pdf_hash_sha256" readonly="1"/>
+                        </group>
+                        <group string="Rétention">
+                            <field name="archived_at"/>
+                            <field name="expires_at"/>
+                            <field name="company_id" string="Société" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                    <group string="Horodatage RFC 3161 (TSA)">
+                        <field name="tsa_url"/>
+                        <field name="tsa_timestamp"/>
+                        <field name="tsa_token" filename="tsa_tsr_filename"/>
+                        <field name="tsa_tsr_filename" invisible="1"/>
+                    </group>
+                    <group string="Contrôle d'intégrité">
+                        <field name="integrity_check_result" string="Résultat"/>
+                        <field name="integrity_check_at" string="Vérifié le"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_facturx_archive" model="ir.actions.act_window">
+        <field name="name">Archivage légal (10 ans)</field>
+        <field name="res_model">facturx.archive</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aucune archive légale.</p>
+            <p>
+                Les archives légales sont créées automatiquement à chaque
+                préparation de facture électronique. Elles garantissent la
+                conformité article L102 B du Code Général des Impôts (rétention
+                10 ans, empreinte cryptographique, lien immutable facture ↔ PDF).
+            </p>
+        </field>
+    </record>
+
+</odoo>

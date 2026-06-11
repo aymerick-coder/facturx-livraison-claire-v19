@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- =========================================================
+         Événements de cycle de vie Factur-X (Point 1)
+         =========================================================
+         Accès :
+         - Smart button sur la facture (visible par tous les
+           utilisateurs ayant accès à la facture)
+         - Menu sous Comptabilité → Configuration → Factur-X,
+           réservé au groupe technique (intégrateurs, admin)
+         ========================================================= -->
+
+    <record id="view_facturx_lifecycle_event_list" model="ir.ui.view">
+        <field name="name">facturx.lifecycle.event.list</field>
+        <field name="model">facturx.lifecycle.event</field>
+        <field name="arch" type="xml">
+            <tree string="Historique des événements" create="false" delete="false" edit="false">
+                <field name="event_date"/>
+                <field name="move_id"/>
+                <field name="from_state"/>
+                <field name="to_state" decoration-success="to_state in ('accepted','paid')"
+                                       decoration-danger="to_state in ('rejected','in_anomaly')"
+                                       decoration-info="to_state in ('sent','delivered','read')"
+                                       decoration-muted="to_state == 'archived'"/>
+                <field name="actor"/>
+                <field name="user_id" optional="show"/>
+                <field name="reason"/>
+                <field name="company_id" groups="base.group_multi_company" optional="show"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_facturx_lifecycle_event_form" model="ir.ui.view">
+        <field name="name">facturx.lifecycle.event.form</field>
+        <field name="model">facturx.lifecycle.event</field>
+        <field name="arch" type="xml">
+            <form string="Événement facture électronique" create="false" edit="false" delete="false">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="display_name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="move_id"/>
+                            <field name="event_date"/>
+                            <field name="actor"/>
+                            <field name="user_id"/>
+                        </group>
+                        <group>
+                            <field name="from_state"/>
+                            <field name="to_state"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="payload_ref"/>
+                        </group>
+                    </group>
+                    <separator string="Motif"/>
+                    <field name="reason" readonly="1"/>
+                    <separator string="Détails techniques"/>
+                    <field name="details" readonly="1"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_facturx_lifecycle_event_search" model="ir.ui.view">
+        <field name="name">facturx.lifecycle.event.search</field>
+        <field name="model">facturx.lifecycle.event</field>
+        <field name="arch" type="xml">
+            <search string="Rechercher un événement">
+                <field name="move_id"/>
+                <field name="reason"/>
+                <separator/>
+                <filter string="À corriger" name="filter_anomaly"
+                        domain="[('to_state', '=', 'in_anomaly')]"/>
+                <filter string="Refusées" name="filter_rejected"
+                        domain="[('to_state', '=', 'rejected')]"/>
+                <filter string="Acceptées" name="filter_accepted"
+                        domain="[('to_state', '=', 'accepted')]"/>
+                <filter string="Payées" name="filter_paid"
+                        domain="[('to_state', '=', 'paid')]"/>
+                <separator/>
+                <filter string="Aujourd'hui" name="filter_today"
+                        domain="[('event_date', '&gt;=', context_today().strftime('%Y-%m-%d 00:00:00'))]"/>
+                <filter string="7 derniers jours" name="filter_week"
+                        domain="[('event_date', '&gt;=', (context_today() - relativedelta(days=7)).strftime('%Y-%m-%d'))]"/>
+                <group expand="0" string="Regrouper par">
+                    <filter string="Facture" name="group_move"
+                            context="{'group_by': 'move_id'}"/>
+                    <filter string="Nouvel état" name="group_to_state"
+                            context="{'group_by': 'to_state'}"/>
+                    <filter string="Origine" name="group_actor"
+                            context="{'group_by': 'actor'}"/>
+                    <filter string="Jour" name="group_day"
+                            context="{'group_by': 'event_date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_facturx_lifecycle_event" model="ir.actions.act_window">
+        <field name="name">Historique des événements</field>
+        <field name="res_model">facturx.lifecycle.event</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_facturx_lifecycle_event_search"/>
+        <field name="context">{'search_default_filter_today': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Aucun événement pour le moment.
+            </p>
+            <p>
+                Les événements sont créés automatiquement à chaque
+                transition de la facture (préparation, transmission, accusé
+                de réception, acceptation, paiement, correction…).
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_facturx_lifecycle_event"
+              name="Historique des événements (technique)"
+              parent="account.menu_finance_configuration"
+              action="action_facturx_lifecycle_event"
+              groups="facturx_community.group_facturx_technical"
+              sequence="110"/>
+
+</odoo>

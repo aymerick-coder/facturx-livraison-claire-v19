@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- Add Factur-X fields to tax form -->
+    <record id="view_tax_form_facturx" model="ir.ui.view">
+        <field name="name">account.tax.form.facturx</field>
+        <field name="model">account.tax</field>
+        <field name="inherit_id" ref="account.view_tax_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Factur-X" name="facturx">
+                    <group>
+                        <group string="Code catégorie">
+                            <field name="facturx_category_code"/>
+                            <field name="facturx_exemption_reason"
+                                   placeholder="ex : Article 261 du CGI"/>
+                        </group>
+                        <group>
+                            <div colspan="2" class="alert alert-info" role="alert">
+                                <p><strong>Mapping Factur-X (UNTDID 5305)</strong></p>
+                                <ul>
+                                    <li><strong>S</strong> — Taux normal (TVA standard)</li>
+                                    <li><strong>Z</strong> — Taux 0% (zero rated)</li>
+                                    <li><strong>E</strong> — Exonéré (motif obligatoire)</li>
+                                    <li><strong>AE</strong> — Autoliquidation (motif obligatoire)</li>
+                                    <li><strong>K</strong> — Livraison intracommunautaire (motif obligatoire)</li>
+                                    <li><strong>G</strong> — Exportation hors UE (motif obligatoire)</li>
+                                    <li><strong>O</strong> — Hors champ TVA (motif obligatoire)</li>
+                                </ul>
+                                <p>Le code est pré-rempli automatiquement à partir du nom de la taxe.
+                                Vous pouvez le modifier manuellement si besoin.</p>
+                            </div>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

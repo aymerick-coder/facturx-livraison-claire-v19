@@ -1,0 +1,9 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_facturx_config_user,facturx.config.user,model_facturx_config,account.group_account_invoice,1,0,0,0
+access_facturx_config_manager,facturx.config.manager,model_facturx_config,account.group_account_manager,1,1,1,1
+access_facturx_send_wizard,facturx.send.wizard.user,model_facturx_send_wizard,account.group_account_invoice,1,1,1,1
+access_facturx_incoming_user,facturx.incoming.user,model_facturx_incoming,account.group_account_invoice,1,1,1,0
+access_facturx_incoming_manager,facturx.incoming.manager,model_facturx_incoming,account.group_account_manager,1,1,1,1
+access_facturx_incoming_line_user,facturx.incoming.line.user,model_facturx_incoming_line,account.group_account_invoice,1,1,1,0
+access_facturx_incoming_line_manager,facturx.incoming.line.manager,model_facturx_incoming_line,account.group_account_manager,1,1,1,1
+access_facturx_import_wizard,facturx.import.wizard.user,model_facturx_import_wizard,account.group_account_invoice,1,1,1,1

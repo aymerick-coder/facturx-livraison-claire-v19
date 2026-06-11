@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- =================================================================== -->
+    <!-- Record rules: multi-company isolation                               -->
+    <!-- =================================================================== -->
+
+    <!-- facturx.incoming: users see only their company's records -->
+    <record id="rule_facturx_incoming_company" model="ir.rule">
+        <field name="name">Incoming Factur-X: multi-company</field>
+        <field name="model_id" ref="model_facturx_incoming"/>
+        <field name="domain_force">[
+            ('company_id', 'in', company_ids)
+        ]</field>
+        <field name="global" eval="True"/>
+    </record>
+
+    <!-- facturx.incoming.line: follows parent company -->
+    <record id="rule_facturx_incoming_line_company" model="ir.rule">
+        <field name="name">Incoming Factur-X Line: multi-company</field>
+        <field name="model_id" ref="model_facturx_incoming_line"/>
+        <field name="domain_force">[
+            ('incoming_id.company_id', 'in', company_ids)
+        ]</field>
+        <field name="global" eval="True"/>
+    </record>
+
+    <!-- facturx.config: one per company, restricted -->
+    <record id="rule_facturx_config_company" model="ir.rule">
+        <field name="name">Factur-X Config: multi-company</field>
+        <field name="model_id" ref="model_facturx_config"/>
+        <field name="domain_force">[
+            ('company_id', 'in', company_ids)
+        ]</field>
+        <field name="global" eval="True"/>
+    </record>
+
+</odoo>

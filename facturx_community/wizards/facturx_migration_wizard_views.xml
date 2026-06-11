@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_facturx_migration_wizard_form" model="ir.ui.view">
+        <field name="name">facturx.migration.wizard.form</field>
+        <field name="model">facturx.migration.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Assistant migration depuis Odoo natif" delete="false">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>🔄 Migration depuis Odoo natif</h1>
+                        <p class="text-muted">
+                            Diagnostic et migration depuis le module Odoo natif
+                            <code>account_edi_ubl_cii</code> vers
+                            <code>facturx_community</code>.
+                        </p>
+                    </div>
+                    <field name="diagnostic_html" widget="html" readonly="1"/>
+                    <group>
+                        <field name="company_id"/>
+                        <field name="native_module_installed" readonly="1"/>
+                        <field name="affected_invoices_count" readonly="1"/>
+                        <field name="action_choice" widget="radio"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_migrate" type="object"
+                            string="🚀 Lancer la migration"
+                            class="btn-primary"/>
+                    <button string="Annuler" class="btn-secondary"
+                            special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_facturx_migration_wizard" model="ir.actions.act_window">
+        <field name="name">Migration depuis Odoo natif</field>
+        <field name="res_model">facturx.migration.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

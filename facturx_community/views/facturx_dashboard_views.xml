@@ -1,0 +1,411 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- =========================================================
+         POINT 3 — Cockpit Factur-X v1
+         =========================================================
+         Vue dashboard simple, robuste, sans JS custom :
+         - 5 grands KPI cliquables en stat-buttons
+         - 1 pipeline visuel (8 mini-compteurs par état)
+         - 1 section "À traiter en priorité" (liste 10 factures)
+         Multi-société natif, droits comptables, perf via read_group.
+         ========================================================= -->
+
+    <!-- Vue list embedded dédiée à la section "Priorité" : -->
+    <record id="view_account_move_facturx_priority_list" model="ir.ui.view">
+        <field name="name">account.move.facturx.priority.list</field>
+        <field name="model">account.move</field>
+        <field name="priority">100</field>
+        <field name="arch" type="xml">
+            <tree string="À traiter en priorité"
+                  create="false" delete="false" edit="false"
+                  default_order="facturx_lifecycle_last_event_date desc"
+                  decoration-danger="facturx_lifecycle_state in ('in_anomaly','rejected')"
+                  decoration-warning="facturx_lifecycle_state in ('on_hold','in_dispute')">
+                <field name="name" string="N° facture"/>
+                <field name="partner_id" string="Client / Fournisseur"/>
+                <field name="invoice_date" string="Date" optional="show"/>
+                <field name="amount_total_signed" string="Montant"
+                       sum="Total" widget="monetary"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="facturx_lifecycle_state" string="État" widget="badge"
+                       decoration-danger="facturx_lifecycle_state in ('in_anomaly','rejected')"
+                       decoration-warning="facturx_lifecycle_state in ('on_hold','in_dispute')"
+                       decoration-info="facturx_lifecycle_state in ('sent','delivered','read','ready')"
+                       decoration-success="facturx_lifecycle_state in ('accepted','paid')"
+                       decoration-muted="facturx_lifecycle_state in ('draft','archived')"/>
+                <field name="facturx_lifecycle_last_event_date" string="Dernière maj"
+                       widget="datetime" optional="show"/>
+                <field name="company_id" groups="base.group_multi_company" optional="show"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_facturx_dashboard_form" model="ir.ui.view">
+        <field name="name">facturx.dashboard.form</field>
+        <field name="model">facturx.dashboard</field>
+        <field name="arch" type="xml">
+            <form string="Tableau de bord facturation électronique" create="false" edit="false" delete="false" duplicate="false">
+                <sheet>
+                    <!-- ======================================================
+                         EN-TÊTE : titre + sous-titre business + volume total
+                         ====================================================== -->
+                    <div class="oe_title">
+                        <h1>
+                            <i class="fa fa-tachometer me-2 text-primary"/>
+                            Tableau de bord facturation électronique
+                        </h1>
+                        <h3 class="text-muted">
+                            Vue d'ensemble de votre facturation électronique réforme 2026
+                        </h3>
+                    </div>
+
+                    <!-- ======================================================
+                         BLOC 0 — Health Score (Point 4)
+                         Bandeau au sommet : score, badge sévérité, recos,
+                         actions rapides conditionnelles.
+                         ====================================================== -->
+                    <field name="health_severity" invisible="1"/>
+                    <field name="count_anomaly" invisible="1"/>
+                    <field name="count_watch" invisible="1"/>
+                    <field name="count_clients_missing_id" invisible="1"/>
+
+                    <div class="border rounded p-3 mb-3"
+                         style="background:#f8f9fa;">
+                        <!-- Boutons rapides — discrets, en haut à droite -->
+                        <div class="text-end mb-2">
+                            <button name="%(facturx_community.action_facturx_anomaly_center)d"
+                                    type="action"
+                                    string="Centre anomalies"
+                                    class="btn btn-sm btn-link"
+                                    icon="fa-exclamation-triangle"
+                                    invisible="count_anomaly == 0"/>
+                            <button name="%(facturx_community.action_facturx_setup_wizard)d"
+                                    type="action"
+                                    string="Relancer l'assistant de configuration"
+                                    class="btn btn-sm btn-link"
+                                    icon="fa-magic"/>
+                        </div>
+                        <div class="row align-items-center">
+                            <!-- Score géant (cliquable : ouvre le détail des 6 composantes) -->
+                            <div class="col-md-3 text-center">
+                                <button name="action_open_health_detail" type="object"
+                                        class="btn btn-link p-0 text-decoration-none"
+                                        title="Cliquez pour voir le détail des 6 critères du score">
+                                    <div class="display-3 fw-bold"
+                                         invisible="health_severity != 'excellent'"
+                                         style="color:#198754;">
+                                        <field name="health_score"/><span class="fs-3">/100</span>
+                                    </div>
+                                    <div class="display-3 fw-bold"
+                                         invisible="health_severity != 'good'"
+                                         style="color:#0dcaf0;">
+                                        <field name="health_score"/><span class="fs-3">/100</span>
+                                    </div>
+                                    <div class="display-3 fw-bold"
+                                         invisible="health_severity != 'warning'"
+                                         style="color:#fd7e14;">
+                                        <field name="health_score"/><span class="fs-3">/100</span>
+                                    </div>
+                                    <div class="display-3 fw-bold"
+                                         invisible="health_severity != 'critical'"
+                                         style="color:#dc3545;">
+                                        <field name="health_score"/><span class="fs-3">/100</span>
+                                    </div>
+                                    <div class="mt-1">
+                                        <field name="health_label" class="fw-semibold"/>
+                                    </div>
+                                    <div class="text-muted small">
+                                        Note de conformité
+                                        <i class="fa fa-info-circle ms-1"/>
+                                    </div>
+                                </button>
+                            </div>
+
+                            <!-- Recommandations -->
+                            <div class="col-md-6">
+                                <div class="small text-muted mb-2 text-uppercase fw-semibold">
+                                    Recommandations
+                                </div>
+                                <field name="health_reco_html" widget="html" readonly="1" nolabel="1"
+                                       options="{'safe': true}"/>
+                            </div>
+
+                            <!-- Actions rapides -->
+                            <div class="col-md-3 d-flex flex-column gap-2">
+                                <button name="action_open_anomaly" type="object"
+                                        class="btn btn-sm btn-outline-danger text-start"
+                                        invisible="count_anomaly == 0">
+                                    <i class="fa fa-exclamation-triangle me-1"/>
+                                    Voir les
+                                    <field name="count_anomaly" class="fw-bold mx-1"/>
+                                    anomalie(s)
+                                </button>
+                                <button name="action_open_clients_missing_id" type="object"
+                                        class="btn btn-sm btn-outline-warning text-start"
+                                        invisible="count_clients_missing_id == 0">
+                                    <i class="fa fa-id-card-o me-1"/>
+                                    <field name="count_clients_missing_id" class="fw-bold me-1"/>
+                                    client(s) sans SIRET
+                                </button>
+                                <button name="action_open_watch" type="object"
+                                        class="btn btn-sm btn-outline-warning text-start"
+                                        invisible="count_watch == 0">
+                                    <i class="fa fa-pause-circle me-1"/>
+                                    <field name="count_watch" class="fw-bold me-1"/>
+                                    à surveiller
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Détail des composantes (repliable, intégrateur friendly).
+                             Visible uniquement en mode debug / groupe technique pour ne pas
+                             polluer l'UX comptable. -->
+                        <div class="mt-3 pt-2 border-top small text-muted"
+                             groups="facturx_community.group_facturx_technical">
+                            <span class="me-3">A · Sans anomalie : <field name="health_component_a" class="fw-bold"/>/35</span>
+                            <span class="me-3">B · Flux normal : <field name="health_component_b" class="fw-bold"/>/20</span>
+                            <span class="me-3">C · Sans blocage : <field name="health_component_c" class="fw-bold"/>/15</span>
+                            <span class="me-3">D · Clients ID : <field name="health_component_d" class="fw-bold"/>/15</span>
+                            <span class="me-3">E · Activité : <field name="health_component_e" class="fw-bold"/>/10</span>
+                            <span class="me-3">F · Réforme : <field name="health_component_f" class="fw-bold"/>/5</span>
+                        </div>
+                    </div>
+
+                    <!-- ======================================================
+                         BLOC 1 — 5 KPI principaux (stat buttons cliquables)
+                         ====================================================== -->
+                    <div class="o_horizontal_separator mt-3 mb-2">
+                        <strong>Vue d'ensemble</strong>
+                    </div>
+                    <div class="d-flex flex-wrap gap-3 mb-4">
+
+                        <button name="action_open_ready" type="object"
+                                class="oe_stat_button btn btn-light flex-fill text-start"
+                                style="min-width:180px;">
+                            <div class="d-flex align-items-center">
+                                <i class="fa fa-check-circle fa-2x text-info me-3"/>
+                                <div>
+                                    <div class="o_field_widget o_stat_value">
+                                        <field name="count_ready" widget="integer"/>
+                                    </div>
+                                    <div class="o_stat_text text-muted small">
+                                        Prêtes à envoyer
+                                    </div>
+                                </div>
+                            </div>
+                        </button>
+
+                        <button name="action_open_in_progress" type="object"
+                                class="oe_stat_button btn btn-light flex-fill text-start"
+                                style="min-width:180px;">
+                            <div class="d-flex align-items-center">
+                                <i class="fa fa-paper-plane fa-2x text-info me-3"/>
+                                <div>
+                                    <div class="o_field_widget o_stat_value">
+                                        <field name="count_in_progress" widget="integer"/>
+                                    </div>
+                                    <div class="o_stat_text text-muted small">
+                                        En cours d'envoi
+                                    </div>
+                                </div>
+                            </div>
+                        </button>
+
+                        <button name="action_open_anomaly" type="object"
+                                class="oe_stat_button btn btn-light flex-fill text-start"
+                                style="min-width:180px;">
+                            <div class="d-flex align-items-center">
+                                <i class="fa fa-exclamation-triangle fa-2x text-danger me-3"/>
+                                <div>
+                                    <div class="o_field_widget o_stat_value">
+                                        <field name="count_anomaly" widget="integer"/>
+                                    </div>
+                                    <div class="o_stat_text text-muted small">
+                                        En anomalie
+                                    </div>
+                                </div>
+                            </div>
+                        </button>
+
+                        <button name="action_open_watch" type="object"
+                                class="oe_stat_button btn btn-light flex-fill text-start"
+                                style="min-width:180px;">
+                            <div class="d-flex align-items-center">
+                                <i class="fa fa-pause-circle fa-2x text-warning me-3"/>
+                                <div>
+                                    <div class="o_field_widget o_stat_value">
+                                        <field name="count_watch" widget="integer"/>
+                                    </div>
+                                    <div class="o_stat_text text-muted small">
+                                        À surveiller
+                                    </div>
+                                </div>
+                            </div>
+                        </button>
+
+                        <button name="action_open_paid" type="object"
+                                class="oe_stat_button btn btn-light flex-fill text-start"
+                                style="min-width:180px;">
+                            <div class="d-flex align-items-center">
+                                <i class="fa fa-euro fa-2x text-success me-3"/>
+                                <div>
+                                    <div class="o_field_widget o_stat_value">
+                                        <field name="count_paid" widget="integer"/>
+                                    </div>
+                                    <div class="o_stat_text text-muted small">
+                                        Payées
+                                    </div>
+                                </div>
+                            </div>
+                        </button>
+
+                    </div>
+
+                    <!-- ======================================================
+                         BLOC 2 — À traiter en priorité (liste 10 max)
+                         ====================================================== -->
+                    <div class="o_horizontal_separator mt-3 mb-2 d-flex align-items-center">
+                        <strong>À traiter en priorité</strong>
+                        <span class="text-muted ms-2 small">
+                            (factures en anomalie, refusées ou à surveiller)
+                        </span>
+                    </div>
+                    <field name="priority_move_ids" nolabel="1" readonly="1"
+                           context="{'list_view_ref': 'facturx_community.view_account_move_facturx_priority_list'}"/>
+                    <div class="text-muted small mt-2 mb-4"
+                         invisible="priority_move_ids">
+                        <i class="fa fa-check-circle text-success me-1"/>
+                        Aucune facture à traiter — tout est nominal.
+                    </div>
+
+                    <!-- ======================================================
+                         BLOC 3 — Pipeline détaillé (volumes par état)
+                         ====================================================== -->
+                    <div class="o_horizontal_separator mt-3 mb-2 d-flex align-items-center">
+                        <strong>Pipeline</strong>
+                        <span class="text-muted ms-2 small">
+                            (volume total :
+                            <field name="count_total" class="d-inline-block fw-bold"/>)
+                        </span>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+
+                        <button name="action_open_draft" type="object"
+                                class="btn btn-outline-secondary flex-fill text-center"
+                                style="min-width:130px;">
+                            <div class="fw-bold fs-4">
+                                <field name="count_draft"/>
+                            </div>
+                            <div class="small">Brouillon</div>
+                        </button>
+
+                        <button name="action_open_ready" type="object"
+                                class="btn btn-outline-info flex-fill text-center"
+                                style="min-width:130px;">
+                            <div class="fw-bold fs-4">
+                                <field name="count_ready"/>
+                            </div>
+                            <div class="small">Prête</div>
+                        </button>
+
+                        <button name="action_open_sent" type="object"
+                                class="btn btn-outline-info flex-fill text-center"
+                                style="min-width:130px;">
+                            <div class="fw-bold fs-4">
+                                <field name="count_sent"/>
+                            </div>
+                            <div class="small">Envoyée</div>
+                        </button>
+
+                        <button name="action_open_delivered" type="object"
+                                class="btn btn-outline-info flex-fill text-center"
+                                style="min-width:130px;">
+                            <div class="fw-bold fs-4">
+                                <field name="count_delivered"/>
+                            </div>
+                            <div class="small">Délivrée</div>
+                        </button>
+
+                        <button name="action_open_accepted" type="object"
+                                class="btn btn-outline-success flex-fill text-center"
+                                style="min-width:130px;">
+                            <div class="fw-bold fs-4">
+                                <field name="count_accepted"/>
+                            </div>
+                            <div class="small">Acceptée</div>
+                        </button>
+
+                        <button name="action_open_paid" type="object"
+                                class="btn btn-outline-success flex-fill text-center"
+                                style="min-width:130px;">
+                            <div class="fw-bold fs-4">
+                                <field name="count_paid"/>
+                            </div>
+                            <div class="small">Payée</div>
+                        </button>
+
+                        <button name="action_open_in_anomaly" type="object"
+                                class="btn btn-outline-danger flex-fill text-center"
+                                style="min-width:130px;">
+                            <div class="fw-bold fs-4">
+                                <field name="count_in_anomaly"/>
+                            </div>
+                            <div class="small">En anomalie</div>
+                        </button>
+
+                        <button name="action_open_rejected" type="object"
+                                class="btn btn-outline-danger flex-fill text-center"
+                                style="min-width:130px;">
+                            <div class="fw-bold fs-4">
+                                <field name="count_rejected"/>
+                            </div>
+                            <div class="small">Refusée</div>
+                        </button>
+
+                    </div>
+
+                    <!-- ======================================================
+                         BLOC 4 — Note pédagogique discrète (rassurante PME)
+                         ====================================================== -->
+                    <div class="alert alert-light border small text-muted mt-3" role="status">
+                        <i class="fa fa-info-circle me-1"/>
+                        Ce cockpit est mis à jour en temps réel. Cliquez sur n'importe
+                        quel chiffre pour voir la liste détaillée des factures concernées.
+                        Le module suit automatiquement chaque étape de la vie de vos
+                        factures électroniques, de la génération à l'acceptation et au
+                        paiement.
+                    </div>
+
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ==========================================================
+         Action principale du Cockpit
+         Délègue à action_open_cockpit() qui crée un record transient
+         frais à chaque ouverture (donc compteurs toujours à jour).
+         ========================================================== -->
+    <record id="action_facturx_dashboard" model="ir.actions.server">
+        <field name="name">Tableau de bord facturation électronique</field>
+        <field name="model_id" ref="model_facturx_dashboard"/>
+        <field name="state">code</field>
+        <field name="code">action = env['facturx.dashboard'].action_open_cockpit()</field>
+    </record>
+
+    <!-- ==========================================================
+         Menu : Comptabilité → Cockpit Factur-X
+         Premier niveau, sequence 5 (en haut de la sidebar), réservé
+         aux utilisateurs ayant accès à la comptabilité facturation.
+         Cohérent avec la promesse produit "vraie solution premium"
+         (pas un sous-menu enfoui dans Configuration).
+         ========================================================== -->
+    <menuitem id="menu_facturx_dashboard"
+              name="Tableau de bord facturation électronique"
+              parent="account.menu_finance"
+              action="action_facturx_dashboard"
+              groups="account.group_account_invoice"
+              sequence="5"/>
+
+</odoo>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo noupdate="1">
+
+    <!-- Default mail alias for Factur-X incoming emails.
+         The alias points to the facturx.incoming model.
+         The admin must configure the actual alias name (e.g. "factures")
+         and the catchall domain in Odoo mail settings.
+
+         Once configured, any email sent to <alias_name>@<catchall_domain>
+         will trigger the message_new() hook on facturx.incoming, which
+         extracts PDF/XML/ZIP attachments and creates one record per file. -->
+
+    <record id="mail_alias_facturx_incoming" model="mail.alias">
+        <field name="alias_name">facturx</field>
+        <field name="alias_model_id" ref="model_facturx_incoming"/>
+        <field name="alias_contact">everyone</field>
+        <field name="alias_defaults">{}</field>
+    </record>
+
+</odoo>

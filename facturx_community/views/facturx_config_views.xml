@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="view_facturx_config_form" model="ir.ui.view">
+        <field name="name">facturx.config.form</field>
+        <field name="model">facturx.config</field>
+        <field name="arch" type="xml">
+            <form string="Configuration Factur-X">
+                <sheet>
+                    <group>
+                        <group string="Émission">
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="embed_xml_in_pdf"/>
+                            <field name="auto_generate"/>
+                        </group>
+                        <group string="Réception">
+                            <field name="auto_create_supplier"/>
+                            <field name="default_purchase_journal_id"/>
+                            <field name="max_upload_size_mb"/>
+                            <field name="watched_folder_enabled"/>
+                            <field name="watched_folder_path"
+                                   invisible="not watched_folder_enabled"
+                                   placeholder="/var/odoo/factures_in"/>
+                        </group>
+                        <group string="Notifications">
+                            <field name="notify_on_import"/>
+                            <field name="notify_user_ids"
+                                   widget="many2many_tags"
+                                   invisible="not notify_on_import"/>
+                        </group>
+                        <group string="API REST">
+                            <field name="api_enabled"/>
+                            <label for="api_token" invisible="not api_enabled"/>
+                            <div invisible="not api_enabled">
+                                <field name="api_token"
+                                       readonly="1"
+                                       placeholder="Cliquez sur Regenerate pour créer un jeton"/>
+                                <button name="action_regenerate_api_token"
+                                        type="object"
+                                        string="Régénérer le jeton"
+                                        class="btn-link"/>
+                            </div>
+                        </group>
+                        <group string="Chorus Pro (envoi B2G)">
+                            <field name="chorus_enabled"/>
+                            <field name="chorus_demo_mode"
+                                   invisible="not chorus_enabled"/>
+                            <field name="chorus_url"
+                                   invisible="not chorus_enabled"/>
+                            <field name="chorus_client_id"
+                                   invisible="not chorus_enabled"
+                                   placeholder="Client ID PISTE (laisser vide en mode démo)"/>
+                            <field name="chorus_client_secret"
+                                   invisible="not chorus_enabled"
+                                   password="True"
+                                   placeholder="Client Secret PISTE (laisser vide en mode démo)"/>
+                            <field name="chorus_login"
+                                   invisible="not chorus_enabled"
+                                   placeholder="Identifiant utilisateur Chorus Pro"/>
+                            <field name="chorus_password"
+                                   invisible="not chorus_enabled"
+                                   password="True"
+                                   placeholder="Mot de passe Chorus Pro"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_facturx_config_tree" model="ir.ui.view">
+        <field name="name">facturx.config.tree</field>
+        <field name="model">facturx.config</field>
+        <field name="arch" type="xml">
+            <list string="Configurations Factur-X">
+                <field name="company_id"/>
+                <field name="auto_generate"/>
+                <field name="embed_xml_in_pdf"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_facturx_config" model="ir.actions.act_window">
+        <field name="name">Factur-X Configuration</field>
+        <field name="res_model">facturx.config</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+</odoo>

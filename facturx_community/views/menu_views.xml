@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <menuitem id="menu_facturx_root"
+              name="Factur-X"
+              parent="account.menu_finance_configuration"
+              sequence="100"/>
+
+    <menuitem id="menu_facturx_config"
+              name="Configuration"
+              parent="menu_facturx_root"
+              action="action_facturx_config"
+              sequence="10"/>
+
+    <!-- Reception menus -->
+    <menuitem id="menu_facturx_reception_root"
+              name="Factur-X"
+              parent="account.menu_finance"
+              sequence="50"/>
+
+    <menuitem id="menu_facturx_incoming"
+              name="Factures reçues"
+              parent="menu_facturx_reception_root"
+              action="action_facturx_incoming"
+              sequence="10"/>
+
+    <menuitem id="menu_facturx_import"
+              name="Importer une facture"
+              parent="menu_facturx_reception_root"
+              action="action_facturx_import_wizard"
+              sequence="20"/>
+
+</odoo>
