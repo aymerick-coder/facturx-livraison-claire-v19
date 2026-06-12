@@ -959,20 +959,24 @@ class FacturXMLBuilder:
         # Buyer
         buyer = etree.SubElement(agreement, '{%s}BuyerTradeParty' % self.NAMESPACES['ram'])
         buyer_partner = self.invoice.partner_id
-        # AIFE Chorus requiert le SIRET destinataire dans GlobalID schemeID=0009
-        # pour identifier le partner dans son annuaire. On cherche le SIRET
-        # via plusieurs voies pour robustesse :
-        # 1. partner direct (partner_id de la facture)
-        # 2. parent_id (si partner est un sous-contact)
-        # 3. commercial_partner_id (TOUJOURS la "vraie" entite, jamais un
-        #    sous-contact). C'est le filet de securite Odoo natif.
+        # AIFE Chorus requiert le SIRET destinataire dans GlobalID schemeID=0009.
+        # CRITIQUE Odoo 19 Enterprise FR : la localisation l10n_fr utilise
+        # le champ NATIF `company_registry` pour stocker le SIRET sur les
+        # partenaires (vu en mode debug : "Champ : company_registry,
+        # Invisible : not l10n_fr_is_french"). Notre champ `siret` reste
+        # vide car les utilisateurs remplissent l'UI Odoo native.
+        # → Fallback : essayer siret puis company_registry sur partner,
+        #   parent_id, et commercial_partner_id.
         commercial = (getattr(self.invoice, 'commercial_partner_id', False)
                       or buyer_partner)
         buyer_siret = (
             getattr(buyer_partner, 'siret', False)
+            or getattr(buyer_partner, 'company_registry', False)
             or (buyer_partner.parent_id
-                and getattr(buyer_partner.parent_id, 'siret', False))
+                and (getattr(buyer_partner.parent_id, 'siret', False)
+                     or getattr(buyer_partner.parent_id, 'company_registry', False)))
             or getattr(commercial, 'siret', False)
+            or getattr(commercial, 'company_registry', False)
             or False
         )
         self._add_trade_party(buyer, buyer_partner, siret=buyer_siret)
