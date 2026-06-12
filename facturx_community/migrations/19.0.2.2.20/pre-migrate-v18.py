@@ -1,9 +1,9 @@
-"""Pre-migration v19.0.2.6.3 : nettoyage AGRESSIF des vues et modules
+"""Pre-migration v17.0.2.2.18 : nettoyage AGRESSIF des vues et modules
 orphelins liees a une ancienne installation v2.6.
 
 CONTEXTE
 ========
-Sur le tenant Cloudpepper Claire, les pre-migrate 2.6.1 et 2.6.2
+Sur le tenant Cloudpepper Claire, les pre-migrate 2.2.16 et 2.2.17
 ont peut-etre echoue silencieusement ou n'ont pas tout couvert.
 Cette migration fait un nettoyage exhaustif.
 
@@ -35,14 +35,14 @@ def migrate(cr, version):
     """)
     bad_views = cr.fetchall()
     _logger.info(
-        "v2.6.3 pre-migrate : %d vue(s) avec methodes approval orphelines : %s",
+        "v2.2.18 pre-migrate : %d vue(s) avec methodes approval orphelines : %s",
         len(bad_views), [v[1] for v in bad_views],
     )
     if bad_views:
         view_ids = [v[0] for v in bad_views]
         cr.execute("DELETE FROM ir_model_data WHERE model='ir.ui.view' AND res_id = ANY(%s);", (view_ids,))
         cr.execute("DELETE FROM ir_ui_view WHERE id = ANY(%s);", (view_ids,))
-        _logger.info("v2.6.3 : %d vue(s) avec approval supprimees.", len(view_ids))
+        _logger.info("v2.2.18 : %d vue(s) avec approval supprimees.", len(view_ids))
 
     # ===== 2. Force facturx_chorus_pro a uninstalled =====
     cr.execute("""
@@ -52,14 +52,14 @@ def migrate(cr, version):
     """)
     if cr.rowcount > 0:
         _logger.info(
-            "v2.6.3 : module facturx_chorus_pro marque uninstalled (%d row).",
+            "v2.2.18 : module facturx_chorus_pro marque uninstalled (%d row).",
             cr.rowcount,
         )
 
     # ===== 3. Nettoie ir.model.data de facturx_chorus_pro =====
     cr.execute("DELETE FROM ir_model_data WHERE module = 'facturx_chorus_pro';")
     if cr.rowcount > 0:
-        _logger.info("v2.6.3 : %d ir.model.data de facturx_chorus_pro supprimes.", cr.rowcount)
+        _logger.info("v2.2.18 : %d ir.model.data de facturx_chorus_pro supprimes.", cr.rowcount)
 
     # ===== 4. Supprime dependances vers facturx_chorus_pro =====
     cr.execute("DELETE FROM ir_module_module_dependency WHERE name = 'facturx_chorus_pro';")
@@ -73,7 +73,7 @@ def migrate(cr, version):
            OR arch_db::text ILIKE '%chorus_pro_history%';
     """)
     if cr.rowcount > 0:
-        _logger.info("v2.6.3 : %d vue(s) chorus_pro orphelines supprimees.", cr.rowcount)
+        _logger.info("v2.2.18 : %d vue(s) chorus_pro orphelines supprimees.", cr.rowcount)
 
     # ===== 6. Supprime les ir.actions.act_window orphelines =====
     cr.execute("""
@@ -84,7 +84,7 @@ def migrate(cr, version):
     """)
     if cr.rowcount > 0:
         _logger.info(
-            "v2.6.3 : %d action(s) chorus orphelines supprimees.", cr.rowcount,
+            "v2.2.18 : %d action(s) chorus orphelines supprimees.", cr.rowcount,
         )
 
     # ===== 7. Supprime les menus orphelins de chorus =====
@@ -96,6 +96,6 @@ def migrate(cr, version):
         );
     """)
     if cr.rowcount > 0:
-        _logger.info("v2.6.3 : %d menu(s) chorus orphelins supprimes.", cr.rowcount)
+        _logger.info("v2.2.18 : %d menu(s) chorus orphelins supprimes.", cr.rowcount)
 
-    _logger.info("v2.6.3 pre-migrate : nettoyage agressif termine. Module pret a recharger.")
+    _logger.info("v2.2.18 pre-migrate : nettoyage agressif termine. Module pret a recharger.")

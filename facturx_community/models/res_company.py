@@ -30,6 +30,14 @@ class ResCompany(models.Model):
     ], string='Profil Factur-X', default='basic',
         help='Factur-X compliance profile. Basic is recommended for most businesses.',
     )
+    facturx_tva_debits = fields.Boolean(
+        string="Option paiement TVA d'après les débits",
+        default=False,
+        help="Cochez si la société a opté pour le paiement de la TVA "
+             "d'après les débits. Si coché, la mention légale "
+             "obligatoire (réforme facturation électronique) est émise "
+             "automatiquement dans le XML Factur-X.",
+    )
     naf_code = fields.Char(
         string='Code NAF/APE',
         size=5,

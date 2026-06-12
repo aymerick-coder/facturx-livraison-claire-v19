@@ -1,8 +1,8 @@
-"""Pre-migration v19.0.2.6.2 : nettoie le module fantome facturx_chorus_pro.
+"""Pre-migration v17.0.2.2.17 : nettoie le module fantome facturx_chorus_pro.
 
 CONTEXTE
 ========
-Sur la branche 19.0-chorus-livraison-claire, le mini-connecteur Chorus
+Sur la branche 17.0-chorus-livraison-claire, le mini-connecteur Chorus
 est INTEGRE dans facturx_community. Il n'existe PAS de module separe
 facturx_chorus_pro sur cette branche.
 
@@ -45,7 +45,7 @@ def migrate(cr, version):
     rows = cr.fetchall()
     if not rows:
         _logger.info(
-            "v2.6.2 pre-migrate : aucun module facturx_chorus_pro en BDD, "
+            "v2.2.17 pre-migrate : aucun module facturx_chorus_pro en BDD, "
             "rien a faire."
         )
         return
@@ -53,7 +53,7 @@ def migrate(cr, version):
     mod_id, state, latest = rows[0]
     if state not in ('installed', 'to upgrade', 'to remove'):
         _logger.info(
-            "v2.6.2 pre-migrate : facturx_chorus_pro deja %s, rien a faire.",
+            "v2.2.17 pre-migrate : facturx_chorus_pro deja %s, rien a faire.",
             state,
         )
         return
@@ -63,7 +63,7 @@ def migrate(cr, version):
     # contient pas, on est dans le cas du module fantome.
 
     _logger.info(
-        "v2.6.2 pre-migrate : module fantome facturx_chorus_pro detecte "
+        "v2.2.17 pre-migrate : module fantome facturx_chorus_pro detecte "
         "(id=%s, state=%s, version=%s). Nettoyage...",
         mod_id, state, latest,
     )
@@ -80,7 +80,7 @@ def migrate(cr, version):
         DELETE FROM ir_model_data WHERE module = 'facturx_chorus_pro';
     """)
     _logger.info(
-        "v2.6.2 pre-migrate : %d ir.model.data du module fantome supprimes.",
+        "v2.2.17 pre-migrate : %d ir.model.data du module fantome supprimes.",
         count_data,
     )
 
@@ -116,6 +116,6 @@ def migrate(cr, version):
     """, (mod_id,))
 
     _logger.info(
-        "v2.6.2 pre-migrate : module fantome facturx_chorus_pro nettoye "
+        "v2.2.17 pre-migrate : module fantome facturx_chorus_pro nettoye "
         "et marque comme uninstalled. Visible en 'Non installe' dans Apps."
     )

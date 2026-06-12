@@ -15,6 +15,7 @@
                     <field name="rcs_city"/>
                     <field name="capital_amount"/>
                     <field name="facturx_profile"/>
+                    <field name="facturx_tva_debits"/>
                 </group>
             </xpath>
         </field>

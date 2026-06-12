@@ -165,26 +165,8 @@ class AccountMoveFacturxPdf(models.Model):
         if 'check_schematron' in supported:
             kwargs['check_schematron'] = False
 
-        # Workaround pypdf 5.x+ / 6.x : la lib factur-x 4.2 passe le PdfObject
-        # auto-resolu (DecodedStreamObject) à PdfWriter._replace_object, qui
-        # attend int | IndirectObject -> TypeError "DecodedStreamObject - int".
-        # On extrait indirect_reference avant l'appel.
-        from pypdf import PdfWriter
-        from pypdf.generic import IndirectObject
-        _orig_replace = PdfWriter._replace_object
-
-        def _patched_replace_object(pdf_self, indirect_reference, obj):
-            if not isinstance(indirect_reference, (int, IndirectObject)):
-                ref = getattr(indirect_reference, 'indirect_reference', None)
-                if ref is not None:
-                    indirect_reference = ref
-            return _orig_replace(pdf_self, indirect_reference, obj)
-
-        PdfWriter._replace_object = _patched_replace_object
-        try:
-            result_pdf = generate_from_binary(pdf_bytes, xml_bytes, **kwargs)
-        finally:
-            PdfWriter._replace_object = _orig_replace
+        # Génère le PDF/A-3 avec XML embarqué (via lib facturx)
+        result_pdf = generate_from_binary(pdf_bytes, xml_bytes, **kwargs)
 
         # Post-traitement pikepdf pour conformité PDF/A-3 stricte ISO 19005-3
         # (corrige File ID, OutputIntent ICC sRGB, AFRelationship — 5/6 warnings FNFE)

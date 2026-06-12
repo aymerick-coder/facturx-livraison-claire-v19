@@ -1,8 +1,9 @@
 import logging
-import re
 
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
+
+import re
 
 _logger = logging.getLogger(__name__)
 
@@ -13,7 +14,7 @@ class ResPartner(models.Model):
     siret = fields.Char(
         string='SIRET',
         size=14,
-        help='Numéro SIRET 14 chiffres pour la facturation B2B.',
+        help='14-digit SIRET number for B2B invoicing',
     )
 
     # ========================================================================
@@ -34,6 +35,19 @@ class ResPartner(models.Model):
              "Émis dans la balise <BuyerOrderReferencedDocument> du XML CII. "
              "Obligatoire pour de nombreux destinataires publics.",
     )
+
+    @api.constrains('siret')
+    def _check_siret(self):
+        for partner in self:
+            if partner.siret:
+                # Accept SIREN (9 digits) OR SIRET (14 digits).
+                # A received invoice may carry only the SIREN (schemeID 0002)
+                # when the supplier did not disclose the establishment NIC.
+                if not re.match(r'^\d{9}(\d{5})?$', partner.siret):
+                    raise ValidationError(
+                        _('SIRET must be 9 digits (SIREN) or 14 digits '
+                          '(SIREN + NIC).')
+                    )
 
     def _register_hook(self):
         """Hook Odoo appelé au démarrage de chaque worker.
@@ -70,16 +84,3 @@ class ResPartner(models.Model):
                 e,
             )
         return result
-
-    @api.constrains('siret')
-    def _check_siret(self):
-        for partner in self:
-            if partner.siret:
-                # Accept SIREN (9 digits) OR SIRET (14 digits).
-                # A received invoice may carry only the SIREN (schemeID 0002)
-                # when the supplier did not disclose the establishment NIC.
-                if not re.match(r'^\d{9}(\d{5})?$', partner.siret):
-                    raise ValidationError(
-                        _('Le SIRET doit faire 9 chiffres (SIREN) ou '
-                          '14 chiffres (SIREN + NIC).')
-                    )

@@ -31,7 +31,7 @@
                         invisible="not chorus_can_send or chorus_status == 'sent'"
                         groups="account.group_account_invoice"/>
                 <button name="action_reset_chorus_pro"
-                        string="🔄 Réinitialiser Chorus Pro"
+                        string="Réinitialiser Chorus Pro"
                         type="object"
                         class="btn-warning"
                         help="Permet de relancer un envoi Chorus Pro après une annulation côté plateforme. ATTENTION : si la facture précédente n'a pas été annulée côté Chorus, le nouvel envoi sera rejeté pour doublon."
@@ -94,7 +94,6 @@
                                 en haut de la facture pour générer les documents.
                             </div>
                         </group>
-                        <!-- Chorus Pro tracking group is added by facturx_chorus_pro -->
                     </group>
 
                     <separator string="Chorus Pro - Données B2G (spécifiques à cette facture)"/>

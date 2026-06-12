@@ -1,6 +1,6 @@
 # Mini-connecteur Chorus Pro — Guide d'activation
 
-**Module Factur-X Modulesfr v19.0.2.6.x**
+**Module Factur-X Modulesfr v17.0.2.2.x**
 **Public : équipes comptables et administrateurs Odoo**
 
 ---
@@ -163,4 +163,4 @@ Pour toute question sur le mini-connecteur, contactez Modulesfr.
 
 ---
 
-*Document version 1.0 — Modulesfr — Module Factur-X v19.0.2.6.0+*
+*Document version 1.0 — Modulesfr — Module Factur-X v17.0.2.2.10+*

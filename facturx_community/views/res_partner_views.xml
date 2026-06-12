@@ -8,38 +8,10 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='vat']" position="after">
                 <field name="siret"/>
-                <!-- Verification VIES (Commission UE) -->
-                <div class="o_row" invisible="not vat">
-                    <button name="action_facturx_check_vies" type="object"
-                            string="✅ Vérifier TVA via VIES (UE)"
-                            class="btn-link"
-                            help="Interroge le service VIES de la Commission européenne pour vérifier la validité du n° TVA intracom."/>
-                    <field name="facturx_vies_checked" invisible="1"/>
-                    <field name="facturx_vies_valid" invisible="1"/>
-                    <field name="facturx_vies_check_date" invisible="1"/>
-                    <span class="badge text-bg-success ms-2"
-                          invisible="not facturx_vies_checked or not facturx_vies_valid">
-                        TVA VIES valide
-                    </span>
-                    <span class="badge text-bg-danger ms-2"
-                          invisible="not facturx_vies_checked or facturx_vies_valid">
-                        TVA VIES invalide
-                    </span>
-                </div>
                 <field name="chorus_pro_service_code"
                        placeholder="Code service (ex: 12345)"/>
                 <field name="chorus_pro_engagement"
                        placeholder="Numéro EJ (ex: EJ0000123)"/>
-            </xpath>
-            <!-- Bloc Auto-remplissage Sirene/INSEE (Point 1 v2.5) -->
-            <xpath expr="//field[@name='vat']" position="before">
-                <field name="facturx_sirene_query"
-                       placeholder="9 chiffres (SIREN) ou 14 chiffres (SIRET)"/>
-                <button name="action_facturx_sirene_lookup" type="object"
-                        string="📡 Récupérer depuis INSEE"
-                        class="btn-link"
-                        invisible="not facturx_sirene_query and not siret"
-                        help="Pré-remplit nom, adresse, TVA et SIRET depuis l'API publique Sirene (data.gouv.fr)."/>
             </xpath>
         </field>
     </record>

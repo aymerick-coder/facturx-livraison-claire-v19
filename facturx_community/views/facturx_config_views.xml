@@ -41,7 +41,7 @@
                                         class="btn-link"/>
                             </div>
                         </group>
-                        <group string="Chorus Pro (envoi B2G)">
+                        <group string="Chorus Pro (B2G)">
                             <field name="chorus_enabled"/>
                             <field name="chorus_demo_mode"
                                    invisible="not chorus_enabled"/>

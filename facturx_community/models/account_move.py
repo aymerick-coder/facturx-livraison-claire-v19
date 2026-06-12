@@ -109,41 +109,6 @@ class AccountMove(models.Model):
              "Si vide, prend la valeur configurée sur la fiche du client.",
     )
 
-    @api.model
-    def _facturx_register_chorus_columns(self):
-        """Crée les colonnes Chorus Pro sur account_move si elles manquent.
-
-        Appelé depuis _register_hook (cf. plus bas dans la classe).
-        Idempotent grâce à IF NOT EXISTS. Indispensable pour les SaaS qui
-        font git pull + restart sans `-u facturx_community` (Cloudpepper).
-        """
-        cr = self.env.cr
-        cr.execute("""
-            ALTER TABLE account_move
-            ADD COLUMN IF NOT EXISTS chorus_pro_service_code VARCHAR;
-        """)
-        cr.execute("""
-            ALTER TABLE account_move
-            ADD COLUMN IF NOT EXISTS chorus_pro_engagement VARCHAR;
-        """)
-        cr.commit()
-
-    def _register_hook(self):
-        """Hook Odoo : crée les colonnes Chorus Pro au démarrage."""
-        result = super()._register_hook()
-        try:
-            self._facturx_register_chorus_columns()
-            _logger.info(
-                "Factur-X : colonnes Chorus Pro vérifiées/créées sur "
-                "account_move (chorus_pro_service_code, chorus_pro_engagement)."
-            )
-        except Exception as e:
-            _logger.warning(
-                "Factur-X : impossible de créer les colonnes Chorus Pro "
-                "sur account_move automatiquement (%s).", e,
-            )
-        return result
-
     # --- Mini-connecteur Chorus Pro (pont temporaire) ---
     chorus_sent_id = fields.Char(
         string='ID Chorus Pro',
@@ -168,6 +133,58 @@ class AccountMove(models.Model):
         help="Vrai si le bouton 'Envoyer vers Chorus Pro' doit être visible.",
     )
 
+    @api.model
+    def _facturx_register_chorus_columns(self):
+        """Crée les colonnes Chorus Pro sur account_move si elles manquent.
+
+        Appelé depuis _register_hook. Idempotent grâce à IF NOT EXISTS.
+        Indispensable pour les SaaS qui font git pull + restart sans
+        `-u facturx_community` (Cloudpepper).
+        """
+        cr = self.env.cr
+        cr.execute("""
+            ALTER TABLE account_move
+            ADD COLUMN IF NOT EXISTS chorus_pro_service_code VARCHAR;
+        """)
+        cr.execute("""
+            ALTER TABLE account_move
+            ADD COLUMN IF NOT EXISTS chorus_pro_engagement VARCHAR;
+        """)
+        cr.execute("""
+            ALTER TABLE account_move
+            ADD COLUMN IF NOT EXISTS chorus_sent_id VARCHAR;
+        """)
+        cr.execute("""
+            ALTER TABLE account_move
+            ADD COLUMN IF NOT EXISTS chorus_sent_date TIMESTAMP;
+        """)
+        cr.execute("""
+            ALTER TABLE account_move
+            ADD COLUMN IF NOT EXISTS chorus_status VARCHAR;
+        """)
+        cr.execute("""
+            ALTER TABLE account_move
+            ADD COLUMN IF NOT EXISTS chorus_message TEXT;
+        """)
+        cr.commit()
+
+    def _register_hook(self):
+        """Hook Odoo : crée les colonnes Chorus Pro au démarrage."""
+        result = super()._register_hook()
+        try:
+            self._facturx_register_chorus_columns()
+            _logger.info(
+                "Factur-X : colonnes Chorus Pro vérifiées/créées sur "
+                "account_move (chorus_pro_service_code, chorus_pro_engagement, "
+                "chorus_sent_id, chorus_sent_date, chorus_status, chorus_message)."
+            )
+        except Exception as e:
+            _logger.warning(
+                "Factur-X : impossible de créer les colonnes Chorus Pro "
+                "sur account_move automatiquement (%s).", e,
+            )
+        return result
+
     @api.depends('move_type', 'facturx_generated', 'chorus_status', 'company_id')
     def _compute_chorus_can_send(self):
         """Le bouton Chorus n'est visible que si :
@@ -189,49 +206,23 @@ class AccountMove(models.Model):
     def action_send_chorus_pro(self):
         """Envoie la facture Factur-X vers Chorus Pro via l'API PISTE.
 
-        Mini-connecteur (pont temporaire en attendant le module
-        facturx_chorus_pro dedie). Utilise les credentials configures
+        Mini-connecteur (pont temporaire). Utilise les credentials configures
         dans facturx.config (Client ID / Secret PISTE + login / password
         Chorus Pro).
-
-        Auth : OAuth2 PISTE en 'password' grant type
-        Depot : POST /cpro/factures/v1/deposer (multipart)
-        Retour : identifiantFactureCPP
         """
-        import base64
         import json
         try:
             import requests
         except ImportError:
-            from odoo.exceptions import UserError
             raise UserError("La bibliothèque Python 'requests' est requise. "
                             "Installez-la avec : pip install requests")
-        from odoo.exceptions import UserError
 
         self.ensure_one()
         if not self.facturx_generated:
             raise UserError("Générez d'abord la facture Factur-X "
-                            "(bouton 'Préparer la facture électronique').")
+                            "(bouton 'Générer Factur-X').")
 
-        # ====================================================================
-        # GARDE ANTI-DOUBLON CHORUS PRO
-        # --------------------------------------------------------------------
-        # Chorus Pro a une clé d'unicité (SIRET fournisseur + numéro facture).
-        # Sans cette garde, un 2e clic sur "Envoyer à Chorus Pro" envoie la
-        # même facture une 2e fois, ce qui est REJETÉ par Chorus pour doublon.
-        # Symptôme : le user voit "Facture INV/2026/XX existe déjà dans la
-        # solution" et perd du temps à diagnostiquer alors que c'est juste un
-        # 2e clic involontaire.
-        #
-        # Niveaux de protection :
-        # 1. Si chorus_status='sent' avec chorus_sent_id renseigné -> refuser
-        # 2. Si chorus_status='sent' mais sans chorus_sent_id (cas démo annulé)
-        #    -> autoriser (cas legacy)
-        #
-        # Pour forcer un renvoi légitime (correction de la facture, etc.),
-        # l'utilisateur doit cliquer "Réinitialiser Chorus Pro" qui remet
-        # chorus_status='not_sent' et vide chorus_sent_id.
-        # ====================================================================
+        # Garde anti-doublon : Chorus rejette les renvois (clé SIRET+numéro).
         if self.chorus_status == 'sent' and self.chorus_sent_id:
             raise UserError(
                 "Cette facture (%s) a déjà été envoyée à Chorus Pro avec "
@@ -241,12 +232,9 @@ class AccountMove(models.Model):
                 "Renvoyer la même facture déclencherait un rejet de Chorus "
                 "Pro pour doublon (Chorus stocke la paire SIRET fournisseur + "
                 "numéro de facture comme clé d'unicité).\n\n"
-                "Si vous devez vraiment la resoumettre :\n"
-                "   1. Modifiez la facture (annulez + dupliquez avec un "
-                "nouveau numéro)\n"
-                "   2. Soit videz l'ID Chorus via le bouton "
-                "« Réinitialiser Chorus Pro » (déconseillé sauf cas annulation "
-                "côté Chorus)" % (
+                "Si vous devez vraiment la resoumettre, utilisez le bouton "
+                "« Réinitialiser Chorus Pro » (déconseillé sauf annulation "
+                "côté Chorus Pro)." % (
                     self.name,
                     self.chorus_sent_id,
                     self.chorus_sent_date or '?',
@@ -263,8 +251,6 @@ class AccountMove(models.Model):
                             "identifiants API PISTE.")
 
         # Mode démo : simule un envoi réussi sans appeler l'API réelle.
-        # Utile pour valider le workflow Odoo (bouton/statuts/journal)
-        # avant d'avoir les identifiants PISTE habilités.
         if config.chorus_demo_mode:
             import random
             fake_id = "DEMO-CPP-%d" % random.randint(10**8, 10**9 - 1)
@@ -301,12 +287,11 @@ class AccountMove(models.Model):
                             "dans la configuration Factur-X "
                             "(ou activez le mode démo pour un test sans identifiants).")
 
-        # Recuperer le PDF Factur-X (champ Binary attachment=True sur le modele)
+        # Récupérer le PDF Factur-X
         pdf_bytes = None
-        if self.facturx_pdf:
+        if getattr(self, 'facturx_pdf', False):
             pdf_bytes = base64.b64decode(self.facturx_pdf)
         else:
-            # Fallback : chercher dans ir.attachment
             Attachment = self.env['ir.attachment'].sudo()
             att = Attachment.search([
                 ('res_model', '=', 'account.move'),
@@ -318,22 +303,18 @@ class AccountMove(models.Model):
         if not pdf_bytes:
             raise UserError(
                 "Aucun PDF Factur-X trouvé pour cette facture. "
-                "Générez d'abord le PDF avec 'Générer PDF Factur-X' dans la barre du haut."
+                "Générez d'abord le PDF avec 'Générer PDF Factur-X'."
             )
-        pdf_filename = self.facturx_pdf_filename or ("Factur-X_%s.pdf" % self.name.replace('/', '_'))
+        pdf_filename = (getattr(self, 'facturx_pdf_filename', None)
+                        or ("Factur-X_%s.pdf" % self.name.replace('/', '_')))
 
-        # OAuth2 PISTE - URLs officielles : OAuth et API DOIVENT etre coherents
-        # sandbox <-> sandbox, prod <-> prod (sinon "invalid_token" cote API).
+        # OAuth2 PISTE : sandbox <-> sandbox, prod <-> prod
         if config.chorus_url == 'sandbox':
             oauth_url = 'https://sandbox-oauth.piste.gouv.fr/api/oauth/token'
             api_url = 'https://sandbox-api.piste.gouv.fr/cpro/factures'
         else:
             oauth_url = 'https://oauth.piste.gouv.fr/api/oauth/token'
             api_url = 'https://api.piste.gouv.fr/cpro/factures'
-        # OAuth2 PISTE = client_credentials (= flow application).
-        # L'identite de l'utilisateur Chorus Pro est passee separement
-        # dans le header 'cpro-account' (base64(login:password)) lors du
-        # depot - ce n'est PAS un flow OAuth password grant.
         token_data = {
             'grant_type': 'client_credentials',
             'client_id': config.chorus_client_id,
@@ -361,7 +342,7 @@ class AccountMove(models.Model):
             })
             raise UserError("Erreur réseau PISTE : %s" % str(e)[:300])
 
-        # Depot de la facture (multipart base64)
+        # Dépôt de la facture
         try:
             payload = {
                 'fichierFlux': base64.b64encode(pdf_bytes).decode(),
@@ -369,9 +350,6 @@ class AccountMove(models.Model):
                 'syntaxeFlux': 'IN_DP_E2_CII_FACTURX',
                 'avecSignature': False,
             }
-            # Header cpro-account OBLIGATOIRE pour l'API Chorus Pro PISTE
-            # = login:password de l'utilisateur Chorus Pro encode en base64.
-            # Sans ce header, l'API retourne HTTP 400 sans corps explicite.
             cpro_account = ''
             if config.chorus_login and config.chorus_password:
                 creds = "%s:%s" % (config.chorus_login, config.chorus_password)
@@ -396,26 +374,14 @@ class AccountMove(models.Model):
             raise UserError("Erreur réseau dépôt Chorus : %s" % str(e)[:300])
 
         if deposit_resp.status_code not in (200, 201, 202):
-            # Detail complet du retour Chorus pour debug
             try:
                 resp_json = deposit_resp.json()
                 detail = json.dumps(resp_json, indent=2, ensure_ascii=False)
             except Exception:
                 detail = deposit_resp.text or "(corps vide)"
-            headers_dump = dict(deposit_resp.headers)
-            import logging
-            _logger = logging.getLogger(__name__)
-            _logger.error("[CHORUS DEBUG] POST %s status=%s\nRequest body sent: %s\nResponse headers: %s\nResponse body: %s",
-                          api_url + '/v1/deposer/flux',
-                          deposit_resp.status_code,
-                          json.dumps(payload)[:500] + '... (pdf truncated)',
-                          headers_dump,
-                          detail)
             headers_summary = "Content-Type: %s" % deposit_resp.headers.get('Content-Type', 'n/a')
             full_msg = (
-                "HTTP %s\n"
-                "Headers: %s\n"
-                "Body: %s"
+                "HTTP %s\nHeaders: %s\nBody: %s"
             ) % (deposit_resp.status_code, headers_summary, detail[:2000])
             self.write({
                 'chorus_status': 'error',
@@ -426,8 +392,7 @@ class AccountMove(models.Model):
                 subject="Échec dépôt Chorus Pro",
             )
             raise UserError("Dépôt Chorus refusé (HTTP %s).\n\n"
-                            "Voir le détail dans l'onglet Factur-X > Suivi Chorus Pro > Retour Chorus Pro, "
-                            "ou dans le journal de la facture (chatter).\n\n"
+                            "Voir le détail dans l'onglet Factur-X > Suivi Chorus Pro.\n\n"
                             "Réponse brute : %s" % (
                             deposit_resp.status_code, detail[:500]))
 
@@ -463,14 +428,8 @@ class AccountMove(models.Model):
         """Réinitialise l'état Chorus Pro pour autoriser un nouvel envoi.
 
         À utiliser UNIQUEMENT si l'envoi précédent a été ANNULÉ côté Chorus
-        Pro (vrai annulation côté plateforme, pas juste un retry). Sinon
-        Chorus rejettera le nouvel envoi pour doublon de toute façon.
-
-        Sécurité : action_send_chorus_pro vérifie la présence de
-        chorus_sent_id pour bloquer le 2e envoi. Cette méthode vide ce
-        champ pour autoriser une nouvelle tentative.
+        Pro. Sinon Chorus rejettera le nouvel envoi pour doublon.
         """
-        from odoo.exceptions import UserError
         for rec in self:
             if rec.chorus_status != 'sent':
                 continue
@@ -488,7 +447,7 @@ class AccountMove(models.Model):
                 ) % old_id,
             })
             rec.message_post(
-                body="🔄 État Chorus Pro réinitialisé (ancien ID : %s)" % old_id,
+                body="État Chorus Pro réinitialisé (ancien ID : %s)" % old_id,
                 subject="Réinitialisation Chorus Pro",
             )
         return {
@@ -501,8 +460,6 @@ class AccountMove(models.Model):
                            "ATTENTION : si l'envoi précédent n'a pas été "
                            "annulé côté Chorus, vous aurez un rejet doublon.",
                 'sticky': True,
-                # Recharge la fiche pour afficher les champs vides + bouton
-                # Envoyer reapparu
                 'next': {'type': 'ir.actions.client', 'tag': 'soft_reload'},
             },
         }
@@ -789,8 +746,7 @@ class AccountMove(models.Model):
         partner = self.partner_id
 
         # 1) Code service Chorus Pro : priorité = FACTURE, puis partenaire (ou parent)
-        #    Permet de gérer les destinataires avec plusieurs codes services
-        #    (cas Logitud : jusqu'à 200 codes par client).
+        #    Permet de gérer les destinataires avec plusieurs codes services.
         service_code = (
             getattr(self, 'chorus_pro_service_code', '') or ''
             or getattr(partner, 'chorus_pro_service_code', '') or ''
@@ -845,38 +801,6 @@ class AccountMove(models.Model):
                             move.name, e,
                         )
         return posted
-
-    # ===================================================================
-    # SHIMS DEFENSIFS (compat anciennes installations v2.6)
-    # -------------------------------------------------------------------
-    # Sur Cloudpepper, le tenant peut avoir d'anciennes vues en BDD qui
-    # referencent ces methodes/champs (issus d'un test v2.6 anterieur).
-    # On les declare ici comme no-op pour que la validation des vues
-    # passe, meme si la fonctionnalite n'est pas active sur cette branche.
-    # ===================================================================
-
-    facturx_approval_state = fields.Selection([
-        ('not_required', 'Non requise'),
-        ('pending_l1',   'En attente L1'),
-        ('pending_l2',   'En attente L2'),
-        ('approved',     'Approuvee'),
-        ('rejected',     'Refusee'),
-    ], string="Etat approbation",
-        default='not_required',
-        help="(Compat) Etat du workflow d'approbation. Non utilise sur cette branche.",
-    )
-
-    def action_facturx_approve_l1(self):
-        """(No-op compat) Workflow approbation non implemente sur cette branche."""
-        return True
-
-    def action_facturx_approve_l2(self):
-        """(No-op compat) Workflow approbation non implemente sur cette branche."""
-        return True
-
-    def action_facturx_reject(self):
-        """(No-op compat) Workflow approbation non implemente sur cette branche."""
-        return True
 
 
 class FacturXMLBuilder:
@@ -960,6 +884,24 @@ class FacturXMLBuilder:
             subject_el = etree.SubElement(note_el, '{%s}SubjectCode' % self.NAMESPACES['ram'])
             subject_el.text = 'ABL'  # Legal information (UNTDID 4451)
 
+        # Réforme 2026 : « Option pour le paiement de la TVA d'après
+        # les débits » — mention légale obligatoire si la société a opté.
+        if getattr(self.invoice.company_id, 'facturx_tva_debits', False):
+            note_el = etree.SubElement(
+                header, '{%s}IncludedNote' % self.NAMESPACES['ram']
+            )
+            content_el = etree.SubElement(
+                note_el, '{%s}Content' % self.NAMESPACES['ram']
+            )
+            content_el.text = (
+                "Option pour le paiement de la taxe sur la valeur "
+                "ajoutée d'après les débits."
+            )
+            subject_el = etree.SubElement(
+                note_el, '{%s}SubjectCode' % self.NAMESPACES['ram']
+            )
+            subject_el.text = 'AAI'  # General information (UNTDID 4451)
+
         # M7 — Legal notes BT-22: emit each line of facturx_legal_notes
         # as a separate IncludedNote with SubjectCode 'AAI' (general info).
         legal_notes = getattr(self.invoice, 'facturx_legal_notes', '') or ''
@@ -1022,7 +964,7 @@ class FacturXMLBuilder:
             or (buyer_partner.parent_id and getattr(buyer_partner.parent_id, 'siret', False))
             or False
         )
-        self._add_trade_party(buyer, buyer_partner, siret=buyer_siret, is_buyer=True)
+        self._add_trade_party(buyer, buyer_partner, siret=buyer_siret)
 
         # BuyerOrderReferencedDocument (engagement juridique / PO number)
         engagement = buyer_refs.get('engagement') or ''
@@ -1033,7 +975,7 @@ class FacturXMLBuilder:
             order_id = etree.SubElement(order_ref, '{%s}IssuerAssignedID' % self.NAMESPACES['ram'])
             order_id.text = engagement
 
-    def _add_trade_party(self, parent, partner, siret=False, is_buyer=False):
+    def _add_trade_party(self, parent, partner, siret=False):
         """Add a TradeParty (seller or buyer) to the XML.
 
         XSD order (CII):
@@ -1059,28 +1001,18 @@ class FacturXMLBuilder:
         name = etree.SubElement(parent, '{%s}Name' % self.NAMESPACES['ram'])
         name.text = partner.name
 
-        # 3. SpecifiedLegalOrganization with SIRET (14 digits)
-        # IMPORTANT pour Chorus Pro : la balise SpecifiedLegalOrganization.ID
-        # doit contenir le SIRET (14 chiffres) ET PAS le SIREN (9 chiffres).
-        # AIFE rejette les flux avec SIREN ici :
-        #   "Le nombre de caracteres de l'identifiant (de type identifiant SIRET)
-        #    doit etre egal a 14"
-        # On garde schemeID="0002" pour la compatibilite EN 16931 (norme dit SIREN
-        # mais Chorus Pro impose SIRET).
+        # 3. SpecifiedLegalOrganization with SIREN (9 digits, derived from SIRET)
+        # SIREN is the legal entity identifier required by the French 2026 reform
+        siren = None
         if siret and len(siret) == 14 and siret.isdigit():
+            siren = siret[:9]
+        if siren:
             legal_org = etree.SubElement(
                 parent, '{%s}SpecifiedLegalOrganization' % self.NAMESPACES['ram']
             )
-            siret_el = etree.SubElement(legal_org, '{%s}ID' % self.NAMESPACES['ram'])
-            siret_el.set('schemeID', '0002')  # 0002 = identifiant legal (FR: SIRET 14 chiffres pour Chorus)
-            siret_el.text = siret
-
-        # In MINIMUM profile, the buyer party stops here : BuyerTradeParty/
-        # PostalTradeAddress is NOT used (Schematron rejects it as 'not used
-        # in the given context'). Only the SellerTradeParty has an address
-        # in MINIMUM, via BR-08/BR-09.
-        if self.profile == 'minimum' and is_buyer:
-            return
+            siren_el = etree.SubElement(legal_org, '{%s}ID' % self.NAMESPACES['ram'])
+            siren_el.set('schemeID', '0002')  # 0002 = SIREN (personne morale)
+            siren_el.text = siren
 
         # 4. PostalTradeAddress
         # In MINIMUM profile, only CountryID is allowed (no zip, street, city).
@@ -1490,10 +1422,7 @@ class FacturXMLBuilder:
             )
 
             # Tax per line
-            # XSD order: TypeCode → CategoryCode → RateApplicablePercent
-            # ExemptionReason (BT-120) is only valid at HEADER level per EN 16931,
-            # not at line level — emitting it on lines triggers Schematron error
-            # "ExemptionReason marked as not used in the given context".
+            # XSD order: TypeCode → ExemptionReason? → CategoryCode → RateApplicablePercent
             for tax in line.tax_ids:
                 line_tax = etree.SubElement(
                     line_settlement, '{%s}ApplicableTradeTax' % self.NAMESPACES['ram']
@@ -1502,6 +1431,13 @@ class FacturXMLBuilder:
                 line_type.text = 'VAT'
 
                 category_code = self._get_tax_category_code(tax)
+                # ExemptionReason MUST come before CategoryCode per XSD
+                if tax.facturx_exemption_reason:
+                    exemption_el = etree.SubElement(
+                        line_tax, '{%s}ExemptionReason' % self.NAMESPACES['ram']
+                    )
+                    exemption_el.text = tax.facturx_exemption_reason
+
                 line_cat = etree.SubElement(
                     line_tax, '{%s}CategoryCode' % self.NAMESPACES['ram']
                 )

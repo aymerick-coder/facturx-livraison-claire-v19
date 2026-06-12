@@ -1,4 +1,4 @@
-"""Pre-migration v19.0.2.6.1 : nettoie les vues orphelines d'anciennes
+"""Pre-migration v17.0.2.2.16 : nettoie les vues orphelines d'anciennes
 versions qui referencent des methodes qui n'existent plus dans cette
 branche (action_facturx_approve_l1, action_facturx_approve_l2,
 action_facturx_reject).
@@ -7,7 +7,7 @@ CONTEXTE
 ========
 Le tenant Cloudpepper Claire a precedemment teste la v2.6 du moteur
 qui contenait `facturx_approval.py` avec les methodes approval L1/L2.
-Lors du retour vers la branche mini-connecteur 19.0-chorus-livraison-claire
+Lors du retour vers la branche mini-connecteur 17.0-chorus-livraison-claire
 (qui n'a pas le module approval), les records `ir.ui.view` orphelins
 en BDD referencent encore ces methodes -> ParseError au load.
 
@@ -38,14 +38,14 @@ def migrate(cr, version):
     rows = cr.fetchall()
     if not rows:
         _logger.info(
-            "v2.6.1 pre-migrate : aucune vue orpheline approval trouvee, "
+            "v2.2.16 pre-migrate : aucune vue orpheline approval trouvee, "
             "rien a faire."
         )
         return
 
     view_ids = [r[0] for r in rows]
     _logger.info(
-        "v2.6.1 pre-migrate : %d vue(s) orpheline(s) approval detectee(s) : %s",
+        "v2.2.16 pre-migrate : %d vue(s) orpheline(s) approval detectee(s) : %s",
         len(view_ids), [r[1] for r in rows],
     )
 
@@ -61,7 +61,7 @@ def migrate(cr, version):
     """, (view_ids,))
 
     _logger.info(
-        "v2.6.1 pre-migrate : %d vue(s) orpheline(s) approval supprimee(s). "
+        "v2.2.16 pre-migrate : %d vue(s) orpheline(s) approval supprimee(s). "
         "Odoo recreera les vues normales au chargement XML.",
         len(view_ids),
     )

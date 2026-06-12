@@ -1,8 +1,8 @@
 {
     'name': 'Factur-X Odoo 19 — Facturation Electronique B2B France EN 16931 (Reforme 2026)',
-    'version': '19.0.2.6.1',
+    'version': '19.0.2.2.20',
     'category': 'Accounting/E-Invoicing',
-    'summary': 'Odoo 19 — Factur-X / e-invoicing EN 16931 PDF/A-3 XML CII ZUGFeRD UBL — emission & reception multi-canal — mini-connecteur Chorus Pro integre (envoi B2G via PISTE, code service + EJ au niveau facture) — conforme reforme 2026 DGFiP FNFE-MPE — valide 6/6 Iopole — multi-TVA — comptabilite francaise B2B B2G',
+    'summary': 'Odoo 19 — Factur-X / e-invoicing EN 16931 PDF/A-3 XML CII ZUGFeRD UBL — emission & reception multi-canal (email IMAP, ZIP, dossier surveille, API REST) — conforme reforme 2026 DGFiP FNFE-MPE — valide 6/6 Iopole — multi-TVA — Chorus Pro — comptabilite francaise B2B B2G',
     'description': """
 Factur-X — Facturation Electronique B2B France pour Odoo Community
 ====================================================================
@@ -45,7 +45,7 @@ credit note, facture fournisseur, facture client, intra-UE, intracommunautaire, 
 
 Identifiants entreprise : SIRET, SIREN, NIC, RCS, KBIS, Kbis, IBAN, BIC, RIB.
 
-Odoo 17, Odoo Community, Odoo Enterprise, Odoo on-premise, Odoo.sh, Odoo SaaS,
+Odoo 19, Odoo Community, Odoo Enterprise, Odoo on-premise, Odoo.sh, Odoo SaaS,
 module Odoo, addon Odoo, app Odoo, account_move, account_invoice, res_partner.
 Versions LTS supportees : Odoo 13, 14, 15, 16, 17, 18, 19.
 
@@ -65,59 +65,6 @@ e-commerce, retail, distribution, France metropolitaine, DOM-TOM (La Reunion,
 Guadeloupe, Martinique, Guyane), Monaco, Luxembourg, Belgique (compatibilite ZUGFeRD).
 
 mandat de facturation, archivage probant.
-
-
-SEO RENFORCE v2.5 — MOTS-CLES HAUTE INTENTION
---------------------------------------------------
-facture electronique 2026, facture electronique obligatoire, obligation facture
-electronique septembre 2026, logiciel facture electronique, logiciel facturation
-electronique, logiciel facturation electronique gratuit, logiciel facturation
-electronique Odoo, application facture electronique, app facture electronique,
-solution facture electronique PME, plateforme facture electronique, outil
-facturation electronique.
-
-Odoo Factur-X, Odoo facture electronique, Odoo facturation electronique, module
-Odoo facture electronique, module Odoo facturation electronique, addon Odoo
-factur-x, app Odoo factur-x, plugin Odoo factur-x, extension Odoo factur-x,
-integration Odoo factur-x, Odoo Community facture electronique.
-
-PEPPOL, PEPPOL France, PEPPOL BIS 3.0, PEPPOL BIS Billing 3.0, reseau PEPPOL,
-authority PEPPOL, OpenPeppol, FRPA, point d acces PEPPOL.
-
-API Sirene, API INSEE, API Recherche Entreprises, recherche-entreprises.api.gouv.fr,
-api.insee.fr, auto-remplissage SIRET, SIREN INSEE, base Sirene, donnees Sirene,
-code APE, NAF, NACE.
-
-Comptable, expert-comptable, cabinet expertise comptable, cabinet comptable Paris,
-cabinet comptable Lyon, cabinet comptable Marseille, cabinet comptable francais,
-comptable independant, comptable freelance, comptable SaaS, RCS, Greffe.
-
-Auto-entrepreneur, micro-entreprise, micro-entrepreneur, indépendant, freelance,
-TPE, profession liberale, SCI, SAS, SARL, EURL, SASU, EI, EIRL, association
-loi 1901, fondation, holding patrimoniale.
-
-OCR factures, lecture automatique facture, scan facture, dematerialisation
-documents, GED, gestion electronique documents, EDI, EDIFACT, INVOIC, ANSI X12.
-
-Audit, audit fiscal, controle fiscal, controle URSSAF, controle DGFiP, piste
-audit fiable, PAF, AFAQ, ISO 27001, conformite, compliance, RGS,
-referentiel general de securite.
-
-Horodatage, horodatage RFC 3161, TSA, time stamping authority, FreeTSA,
-Universign, ChamberSign, signature electronique, signature numerique,
-certificat de signature, signature qualifiee eIDAS, eIDAS 2.
-
-Comparatif facture electronique, alternative Sage facture, alternative Cegid
-facture, alternative Pennylane, alternative EBP facture, comparatif PDP,
-comparatif logiciel facturation, comparatif solution facture electronique.
-
-Tutoriel facture electronique, guide facture electronique, formation facture
-electronique, documentation factur-x, exemple factur-x, demo factur-x,
-test factur-x, validation factur-x, validateur factur-x, debug factur-x.
-
-E-reporting, e-reporting B2C, e-reporting international, e-reporting intra-UE,
-e-reporting export, flux 10, flux 10.1, flux 10.2, flux 10.3, flux 10.4,
-periode TVA, declaration TVA, CA3, CA12, TVA encaissement, TVA debits.
 
 
 GLOSSAIRE & ECOSYSTEME COUVERT
@@ -201,103 +148,6 @@ SECURITE ET TRACABILITE
 - Isolation multi-societe (record rules)
 - Conformite RGPD pour les donnees personnelles (10 ans retention fiscale)
 
-PREMIUM v2.4 — DASHBOARD & WORKFLOW (NOUVEAU)
----------------------------------------------
-- **Cockpit Factur-X** : tableau de bord temps reel (volume emis, taux
-  acceptation, anomalies, factures a payer, sante globale)
-- **Centre d'anomalies** : toutes les factures en erreur sur 1 ecran avec
-  cause probable + action recommandee + bouton "relancer"
-- **Timeline visuelle** par facture : historique du cycle de vie
-  (genere -> envoye -> recu -> accepte -> paye) avec acteurs et dates
-- **Workflow d'approbation a 2 niveaux** (L1 comptable / L2 directeur)
-  avec seuil de declenchement configurable par societe
-- **Rapports analytiques** : KPIs par profil, par categorie TVA, top
-  clients, taux de succes — exportable HTML
-
-PREMIUM v2.4 — CONFORMITE & ARCHIVAGE (NOUVEAU)
------------------------------------------------
-- **Piste d'Audit Fiable (PAF)** : score de conformite sur 100 selon
-  art. L.102 B et 242 nonies A du CGI (PDF archive / hash SHA-256 /
-  horodatage TSA / retention 10 ans / lien facture-PDF)
-- **Archivage legal 10 ans** automatique apres emission, avec
-  **horodatage RFC 3161** (TSA FreeTSA par defaut, Universign en option)
-- **Verification d'integrite** au cas par cas (hash + signature TSA)
-- **Migration helper** depuis le module Odoo natif `account_edi_ubl_cii`
-  vers facturx_community (diagnostic + remarquage + recommandations)
-
-PREMIUM v2.4 — AI & PRODUCTIVITE (NOUVEAU)
-------------------------------------------
-- **AI Tagging TVA** : suggestion automatique de la categorie TVA
-  (UNTDID 5305) selon la description de ligne (export -> G, intra-UE -> K,
-  BTP sous-traitance -> AE, exoneration formation -> E, etc.)
-- **OCR de secours** pour PDF non-structures (Tesseract) : extraction
-  approximative montant TTC / date / SIRET / numero pour rapprochement
-  manuel facilite
-- **Mode degrade adaptatif** : detection automatique des dependances
-  Python disponibles (pikepdf, ghostscript, cryptography) et adaptation
-  du comportement en consequence — le module reste fonctionnel meme
-  sur un Odoo Community minimaliste
-
-PREMIUM v2.4 — CABINET COMPTABLE (NOUVEAU)
-------------------------------------------
-- **Cockpit Cabinet multi-clients** : vue agregee toutes societes,
-  total factures du mois, score moyen conformite, alertes par dossier
-- **PEPPOL eligibility check** : detection des factures eligibles a
-  l'envoi via reseau PEPPOL BIS Billing 3.0 (export UE / B2G europeen)
-- **API REST publique** : endpoint POST `/facturx/api/v1/generate/<id>`
-  pour generation a la demande depuis Zapier, Make, n8n, scripts maison
-
-INTERNATIONALISATION
---------------------
-- Module 100% francais (langue principale, langue de la reforme)
-- Stubs traduction **anglais** et **allemand** (compatibilite ZUGFeRD
-  pour la communaute allemande) — contributions OCA bienvenues
-
-PREMIUM v2.6 — ECOSYSTEME ETENDU (NOUVEAU)
-------------------------------------------
-- **Signature electronique eIDAS** : adapter Yousign / Universign /
-  DocuSign / Adobe Sign (signature qualifiee niveau eIDAS pour les
-  factures B2B sensibles ou les marches publics)
-- **QR code SEPA EPC** sur PDF : le client scanne et le virement est
-  pre-rempli (IBAN + montant + communication) — paiement en 5 secondes
-- **Validation VIES TVA temps reel** : verification de la TVA intracom
-  via l'API officielle Commission europeenne (anti-fraude)
-- **Mention micro-entreprise auto** (art. 293 B CGI) : pour les
-  auto-entrepreneurs / EI / SCI en franchise en base TVA
-- **Helper relance impayes** : croise Factur-X + paiement, ne relance
-  que les factures envoyees et acquittees PDP (zero faux positif)
-- **Bots Telegram / Slack / Discord / Mattermost** : notification temps
-  reel des anomalies, paiements, refus dans votre messagerie equipe
-- **Compat GED Alfresco / Nuxeo / WebDAV / S3** : push automatique des
-  PDF dans votre GED entreprise (CMIS)
-- **Assistant IA correction facture** (OpenAI / Anthropic / Mistral) :
-  suggestion de description de ligne, controle de coherence pre-emission
-- **Smart matching apprenant** reception : apprend les fournisseurs
-  recurrents pour proposer le match automatiquement
-- **Multi-langue ES / IT / NL / PT** (en plus de FR / EN / DE)
-
-PREMIUM v2.5 — PRODUCTIVITE & ECOSYSTEME (NOUVEAU)
---------------------------------------------------
-- **Sirene / INSEE auto-fill** : 1 clic SIRET -> nom, adresse, APE,
-  TVA intracom pre-remplis (API publique data.gouv.fr, sans cle)
-- **Pre-flight check global** : bouton "tester la chaine complete"
-  (deps Python + SIRET + TVA + IBAN + XSD + alias email + reseau)
-- **Bilan annuel PDF auto** : rapport synthetique exercice (volume,
-  conformite, score PAF, top 5 clients) — cadeau cabinet en janvier
-- **Actions de masse** : generer 50 PDF Factur-X / marquer envoyees
-  en 1 clic depuis la liste des factures
-- **Webhooks sortants** : push HTTP POST signe HMAC SHA-256 vers ERP/
-  CRM tiers (Zapier, Make, n8n, integrations maison) a chaque
-  evenement (genere, envoye, accepte, paye, anomalie)
-- **Multi-devise** : champ taux de change TVA calcule automatiquement
-  pour factures USD/GBP/CHF (exports hors zone €)
-
-DOCUMENTATION
--------------
-- **QUICK_START.md** : installation et 1ere facture en 5 minutes
-- **DEV_API.md** : guide developpeur / integrateur (hooks, extensions,
-  adapter PDP custom, endpoints REST)
-
 COMPATIBILITE
 -------------
 - Odoo **Community 13, 14, 15, 16, 17, 18, 19** (port v8 disponible sur demande)
@@ -358,20 +208,6 @@ Site  : https://modulesfr.com
         'views/facturx_config_views.xml',
         'views/facturx_incoming_views.xml',
         'wizards/facturx_import_wizard_views.xml',
-        'wizards/facturx_setup_wizard_views.xml',
-        'wizards/facturx_migration_wizard_views.xml',
-        'wizards/facturx_preflight_wizard_views.xml',
-        'wizards/facturx_annual_report_wizard_views.xml',
-        'views/facturx_batch_views.xml',
-        'views/facturx_webhook_views.xml',
-        'views/facturx_lifecycle_views.xml',
-        'views/facturx_timeline_views.xml',
-        'views/facturx_anomaly_center_views.xml',
-        'views/facturx_dashboard_views.xml',
-        'views/facturx_analytics_views.xml',
-        'views/facturx_archive_views.xml',
-        'views/facturx_approval_views.xml',
-        'views/facturx_paf_views.xml',
         'views/menu_views.xml',
         'reports/invoice_report.xml',
         'wizards/facturx_send_wizard_views.xml',
@@ -381,7 +217,7 @@ Site  : https://modulesfr.com
     'application': True,
     'auto_install': False,
     'images': ['static/description/banner.png'],
-    'price': 590.00,
+    'price': 299.00,
     'currency': 'EUR',
     'post_init_hook': 'post_init_hook',
 }
