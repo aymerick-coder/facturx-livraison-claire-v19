@@ -493,12 +493,10 @@ class AccountMove(models.Model):
                 body=(
                     "<p><b>Échec du dépôt Chorus Pro</b></p>"
                     "<p>%s</p>"
-                    "<details><summary>Détail technique (pour le support)</summary>"
-                    "<pre>%s</pre></details>"
-                ) % (
-                    user_reason,
-                    ("HTTP %s\n%s" % (http_code, detail[:1500])).replace('<', '&lt;'),
-                ),
+                    "<p><i>Le détail technique complet est disponible dans "
+                    "l'onglet Factur-X &gt; Suivi Chorus Pro pour le "
+                    "support Modulesfr.</i></p>"
+                ) % user_reason,
                 subject="Échec du dépôt Chorus Pro",
             )
             raise UserError(
@@ -544,16 +542,12 @@ class AccountMove(models.Model):
                 "<p>Le dépôt a été accepté par Chorus Pro. "
                 "Vous pouvez maintenant suivre son cycle de vie depuis le "
                 "portail Chorus Pro.</p>"
-                "<table style='border-collapse: collapse; margin-top: 8px;'>"
-                "<tr><td style='padding: 2px 12px 2px 0;'><b>Numéro de dépôt</b></td>"
-                "<td>%s</td></tr>"
-                "<tr><td style='padding: 2px 12px 2px 0;'><b>Date du dépôt</b></td>"
-                "<td>%s</td></tr>"
-                "<tr><td style='padding: 2px 12px 2px 0;'><b>Format</b></td>"
-                "<td>Factur-X (EN 16931)</td></tr>"
-                "<tr><td style='padding: 2px 12px 2px 0;'><b>Environnement</b></td>"
-                "<td>%s</td></tr>"
-                "</table>"
+                "<ul>"
+                "<li><b>Numéro de dépôt :</b> %s</li>"
+                "<li><b>Date du dépôt :</b> %s</li>"
+                "<li><b>Format :</b> Factur-X (EN 16931)</li>"
+                "<li><b>Environnement :</b> %s</li>"
+                "</ul>"
             ) % (chorus_id, date_depot, env_label),
             subject="Envoi Chorus Pro",
         )
