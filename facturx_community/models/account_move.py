@@ -491,15 +491,15 @@ class AccountMove(models.Model):
             })
             self.message_post(
                 body=(
-                    "<p><b>⚠️ Echec depot Chorus Pro</b></p>"
+                    "<p><b>Échec du dépôt Chorus Pro</b></p>"
                     "<p>%s</p>"
-                    "<details><summary>Detail technique</summary>"
+                    "<details><summary>Détail technique (pour le support)</summary>"
                     "<pre>%s</pre></details>"
                 ) % (
                     user_reason,
                     ("HTTP %s\n%s" % (http_code, detail[:1500])).replace('<', '&lt;'),
                 ),
-                subject="Echec depot Chorus Pro",
+                subject="Échec du dépôt Chorus Pro",
             )
             raise UserError(
                 "Echec depot Chorus Pro\n\n%s\n\n"
@@ -511,24 +511,27 @@ class AccountMove(models.Model):
         chorus_id = (result.get('numeroFluxDepot')
                      or result.get('identifiantFactureCPP')
                      or '')
-        date_depot = result.get('dateDepot') or fields.Date.today().strftime('%Y-%m-%d')
+        # Formater la date en francais (12/06/2026 au lieu de 2026-06-12).
+        date_depot_raw = result.get('dateDepot') or fields.Date.today().strftime('%Y-%m-%d')
+        try:
+            from datetime import datetime
+            date_obj = datetime.strptime(date_depot_raw, '%Y-%m-%d')
+            date_depot = date_obj.strftime('%d/%m/%Y')
+        except Exception:
+            date_depot = date_depot_raw
+        env_label = "Production" if config.chorus_url == 'prod' else "Qualif (Sandbox)"
         # Message humain pour comptables (pas de JSON technique).
         # Le JSON brut reste accessible via les logs Odoo pour le support.
         clear_message = (
-            "Facture déposée avec succès sur Chorus Pro.\n\n"
-            "• Numéro de dépôt : %s\n"
-            "• Date du dépôt : %s\n"
-            "• Format : Factur-X (EN 16931)\n"
-            "• Environnement : %s\n"
-            "• Statut : Acceptée par Chorus Pro\n\n"
+            "Facture transmise et acceptée par Chorus Pro.\n\n"
+            "Numéro de dépôt : %s\n"
+            "Date du dépôt : %s\n"
+            "Format : Factur-X (EN 16931)\n"
+            "Environnement : %s\n\n"
             "Vous pouvez désormais suivre l'état de cette facture "
             "(reçue, mise à disposition, acceptée par le destinataire, "
             "payée) directement sur le portail Chorus Pro."
-        ) % (
-            chorus_id,
-            date_depot,
-            "Production" if config.chorus_url == 'prod' else "Qualif (Sandbox)",
-        )
+        ) % (chorus_id, date_depot, env_label)
         self.write({
             'chorus_sent_id': str(chorus_id),
             'chorus_sent_date': fields.Datetime.now(),
@@ -537,19 +540,21 @@ class AccountMove(models.Model):
         })
         self.message_post(
             body=(
-                "<p><b>✅ Facture transmise à Chorus Pro avec succès</b></p>"
-                "<ul>"
-                "<li>Numéro de dépôt : <b>%s</b></li>"
-                "<li>Date du dépôt : %s</li>"
-                "<li>Format : Factur-X (EN 16931)</li>"
-                "<li>Environnement : %s</li>"
-                "</ul>"
-                "<p><i>Suivi possible sur le portail Chorus Pro.</i></p>"
-            ) % (
-                chorus_id,
-                date_depot,
-                "Production" if config.chorus_url == 'prod' else "Qualif (Sandbox)",
-            ),
+                "<p><b>Facture transmise à Chorus Pro</b></p>"
+                "<p>Le dépôt a été accepté par Chorus Pro. "
+                "Vous pouvez maintenant suivre son cycle de vie depuis le "
+                "portail Chorus Pro.</p>"
+                "<table style='border-collapse: collapse; margin-top: 8px;'>"
+                "<tr><td style='padding: 2px 12px 2px 0;'><b>Numéro de dépôt</b></td>"
+                "<td>%s</td></tr>"
+                "<tr><td style='padding: 2px 12px 2px 0;'><b>Date du dépôt</b></td>"
+                "<td>%s</td></tr>"
+                "<tr><td style='padding: 2px 12px 2px 0;'><b>Format</b></td>"
+                "<td>Factur-X (EN 16931)</td></tr>"
+                "<tr><td style='padding: 2px 12px 2px 0;'><b>Environnement</b></td>"
+                "<td>%s</td></tr>"
+                "</table>"
+            ) % (chorus_id, date_depot, env_label),
             subject="Envoi Chorus Pro",
         )
         return {
