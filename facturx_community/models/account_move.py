@@ -198,34 +198,37 @@ class AccountMove(models.Model):
         return result
 
     def _facturx_reparent_menus_to_accounting(self):
-        """Si l'app 'Comptabilite' (account_accountant Enterprise) est
+        """Si l'app 'Comptabilite' (module 'accountant' Enterprise) est
         installee, deplace le menu racine Factur-X et ses enfants sous
         le menu principal de Comptabilite. Sinon, ne fait rien.
 
-        Probleme Odoo Enterprise FR : quand account_accountant est
-        installe, les menus standards (Tableau de bord, Clients,
-        Fournisseurs) basculent automatiquement dans l'app "Comptabilite"
-        et l'app "Facturation" devient quasi-vide. Notre menu Factur-X
-        restait orphelin dans Facturation. Resultat : Claire (comptable)
-        ne voit pas notre menu Factur-X depuis l'app qu'elle utilise.
+        Probleme Odoo Enterprise FR : quand le module 'accountant' est
+        installe, il cree un menu top 'Accounting' (xmlid
+        'accountant.menu_accounting') et DEPLACE les sous-menus de
+        'account.menu_finance' (Facturation) dedans. Notre menu Factur-X
+        restait orphelin dans Facturation (devenue quasi-vide). Resultat :
+        Claire (comptable) ne voit pas notre menu Factur-X depuis l'app
+        qu'elle utilise.
 
-        Fix : si Comptabilite Enterprise est presente, on rattache le
-        menu Factur-X au menu racine de Comptabilite."""
+        Fix : si module 'accountant' present, on rattache le menu Factur-X
+        au menu racine de Comptabilite, comme Odoo natif le fait pour
+        ses propres sous-menus."""
         env = self.env
-        # Verification : account_accountant est-il installe ?
+        # Verification : module 'accountant' (Comptabilite Enterprise FR)
+        # est-il installe ? (NB : c'est 'accountant', pas 'account_accountant')
         Module = env['ir.module.module'].sudo()
         installed = Module.search_count([
-            ('name', '=', 'account_accountant'),
+            ('name', '=', 'accountant'),
             ('state', '=', 'installed'),
         ])
         if not installed:
             return  # App Comptabilite pas installee, on laisse tel quel
 
-        # Trouver le menu racine "Comptabilite" Enterprise
+        # Trouver le menu racine "Comptabilite" (xmlid accountant.menu_accounting)
         IrModelData = env['ir.model.data'].sudo()
         try:
             menu_accounting = IrModelData._xmlid_to_res_id(
-                'account_accountant.menu_accounting', raise_if_not_found=False
+                'accountant.menu_accounting', raise_if_not_found=False
             )
         except Exception:
             menu_accounting = False
@@ -246,7 +249,7 @@ class AccountMove(models.Model):
                 Menu.write({'parent_id': menu_accounting})
                 _logger.info(
                     "Factur-X : menu 'Facturation electronique' deplace "
-                    "sous l'app Comptabilite (Enterprise detectee)."
+                    "sous l'app Comptabilite (module 'accountant' detecte)."
                 )
 
     @api.depends('move_type', 'facturx_generated', 'chorus_status', 'company_id')
