@@ -6,12 +6,12 @@
         <field name="model">res.partner</field>
         <field name="inherit_id" ref="base.view_partner_form"/>
         <field name="arch" type="xml">
+            <!-- Retour Claire 08/06 : Code service + EJ Chorus Pro doivent
+                 etre AU NIVEAU FACTURE uniquement, PAS sur la fiche partner.
+                 Les champs restent dans le model res_partner pour autofill
+                 futur eventuel, mais ne sont plus exposes en UI. -->
             <xpath expr="//field[@name='vat']" position="after">
                 <field name="siret"/>
-                <field name="chorus_pro_service_code"
-                       placeholder="Code service (ex: 12345)"/>
-                <field name="chorus_pro_engagement"
-                       placeholder="Numéro EJ (ex: EJ0000123)"/>
             </xpath>
         </field>
     </record>
