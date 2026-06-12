@@ -379,43 +379,110 @@ class AccountMove(models.Model):
                 detail = json.dumps(resp_json, indent=2, ensure_ascii=False)
             except Exception:
                 detail = deposit_resp.text or "(corps vide)"
-            # Diagnostic complet : tous les headers de reponse + body
-            all_headers = "\n".join(
-                "  %s: %s" % (k, v) for k, v in deposit_resp.headers.items()
-            )
-            headers_summary = "Tous les headers reponse :\n%s\n\nURL appelee : %s" % (
-                all_headers, deposit_resp.url
-            )
-            full_msg = (
-                "HTTP %s\nHeaders: %s\nBody: %s"
-            ) % (deposit_resp.status_code, headers_summary, detail[:2000])
+
+            # Traduction des principales erreurs en message comptable.
+            http_code = deposit_resp.status_code
+            if http_code == 401:
+                user_reason = (
+                    "Identifiants Chorus Pro incorrects ou expires. "
+                    "Verifiez vos identifiants dans Configuration > Factur-X."
+                )
+            elif http_code == 403:
+                user_reason = (
+                    "Acces refuse par Chorus Pro. Votre compte ne dispose pas "
+                    "des droits necessaires pour deposer cette facture."
+                )
+            elif http_code == 404:
+                user_reason = (
+                    "Destinataire introuvable dans l'annuaire Chorus Pro. "
+                    "Verifiez le SIRET du destinataire de la facture."
+                )
+            elif http_code in (422, 400):
+                user_reason = (
+                    "Donnees de la facture invalides ou incompletes selon "
+                    "Chorus Pro. Verifiez le code service, l'engagement "
+                    "juridique et le destinataire."
+                )
+            elif http_code == 503:
+                user_reason = (
+                    "Service Chorus Pro temporairement indisponible (maintenance). "
+                    "Reessayez plus tard."
+                )
+            else:
+                user_reason = "Erreur technique Chorus Pro (code HTTP %s)." % http_code
+
+            # Message clair pour la comptable + bloc technique pour le support.
+            clear_message = (
+                "%s\n\n"
+                "----- Detail technique (pour le support Modulesfr) -----\n"
+                "Code HTTP : %s\n"
+                "Reponse Chorus Pro : %s"
+            ) % (user_reason, http_code, detail[:1500])
             self.write({
                 'chorus_status': 'error',
-                'chorus_message': full_msg,
+                'chorus_message': clear_message,
             })
             self.message_post(
-                body="<b>Dépôt Chorus refusé</b><br/><pre>%s</pre>" % full_msg.replace('<', '&lt;'),
-                subject="Échec dépôt Chorus Pro",
+                body=(
+                    "<p><b>⚠️ Echec depot Chorus Pro</b></p>"
+                    "<p>%s</p>"
+                    "<details><summary>Detail technique</summary>"
+                    "<pre>%s</pre></details>"
+                ) % (
+                    user_reason,
+                    ("HTTP %s\n%s" % (http_code, detail[:1500])).replace('<', '&lt;'),
+                ),
+                subject="Echec depot Chorus Pro",
             )
-            raise UserError("Dépôt Chorus refusé (HTTP %s).\n\n"
-                            "Voir le détail dans l'onglet Factur-X > Suivi Chorus Pro.\n\n"
-                            "Réponse brute : %s" % (
-                            deposit_resp.status_code, detail[:500]))
+            raise UserError(
+                "Echec depot Chorus Pro\n\n%s\n\n"
+                "Le detail technique est disponible dans l'onglet "
+                "Factur-X > Suivi Chorus Pro." % user_reason
+            )
 
         result = deposit_resp.json() if deposit_resp.text else {}
         chorus_id = (result.get('numeroFluxDepot')
                      or result.get('identifiantFactureCPP')
                      or '')
+        date_depot = result.get('dateDepot') or fields.Date.today().strftime('%Y-%m-%d')
+        # Message humain pour comptables (pas de JSON technique).
+        # Le JSON brut reste accessible via les logs Odoo pour le support.
+        clear_message = (
+            "Facture déposée avec succès sur Chorus Pro.\n\n"
+            "• Numéro de dépôt : %s\n"
+            "• Date du dépôt : %s\n"
+            "• Format : Factur-X (EN 16931)\n"
+            "• Environnement : %s\n"
+            "• Statut : Acceptée par Chorus Pro\n\n"
+            "Vous pouvez désormais suivre l'état de cette facture "
+            "(reçue, mise à disposition, acceptée par le destinataire, "
+            "payée) directement sur le portail Chorus Pro."
+        ) % (
+            chorus_id,
+            date_depot,
+            "Production" if config.chorus_url == 'prod' else "Qualif (Sandbox)",
+        )
         self.write({
             'chorus_sent_id': str(chorus_id),
             'chorus_sent_date': fields.Datetime.now(),
             'chorus_status': 'sent',
-            'chorus_message': "Dépôt Chorus Pro réussi. "
-                              "Réponse : " + json.dumps(result)[:500],
+            'chorus_message': clear_message,
         })
         self.message_post(
-            body=("Facture envoyée à Chorus Pro avec succès.<br/>"
-                  "ID Chorus : <b>%s</b>" % chorus_id),
+            body=(
+                "<p><b>✅ Facture transmise à Chorus Pro avec succès</b></p>"
+                "<ul>"
+                "<li>Numéro de dépôt : <b>%s</b></li>"
+                "<li>Date du dépôt : %s</li>"
+                "<li>Format : Factur-X (EN 16931)</li>"
+                "<li>Environnement : %s</li>"
+                "</ul>"
+                "<p><i>Suivi possible sur le portail Chorus Pro.</i></p>"
+            ) % (
+                chorus_id,
+                date_depot,
+                "Production" if config.chorus_url == 'prod' else "Qualif (Sandbox)",
+            ),
             subject="Envoi Chorus Pro",
         )
         return {
