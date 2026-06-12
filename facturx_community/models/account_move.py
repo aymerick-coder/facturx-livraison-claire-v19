@@ -169,7 +169,9 @@ class AccountMove(models.Model):
         cr.commit()
 
     def _register_hook(self):
-        """Hook Odoo : crée les colonnes Chorus Pro au démarrage."""
+        """Hook Odoo : crée les colonnes Chorus Pro au démarrage +
+        déplace les menus Factur-X sous l'app Comptabilité Enterprise
+        si elle est installée."""
         result = super()._register_hook()
         try:
             self._facturx_register_chorus_columns()
@@ -183,7 +185,69 @@ class AccountMove(models.Model):
                 "Factur-X : impossible de créer les colonnes Chorus Pro "
                 "sur account_move automatiquement (%s).", e,
             )
+        # UX : si Comptabilite Enterprise (account_accountant) est installee,
+        # deplacer le menu Factur-X sous "Comptabilite" (la ou Claire travaille
+        # vraiment) au lieu de le laisser orphelin sous "Facturation" allege.
+        try:
+            self._facturx_reparent_menus_to_accounting()
+        except Exception as e:
+            _logger.warning(
+                "Factur-X : impossible de deplacer les menus sous "
+                "Comptabilite (%s). Menus restent sous Facturation.", e,
+            )
         return result
+
+    def _facturx_reparent_menus_to_accounting(self):
+        """Si l'app 'Comptabilite' (account_accountant Enterprise) est
+        installee, deplace le menu racine Factur-X et ses enfants sous
+        le menu principal de Comptabilite. Sinon, ne fait rien.
+
+        Probleme Odoo Enterprise FR : quand account_accountant est
+        installe, les menus standards (Tableau de bord, Clients,
+        Fournisseurs) basculent automatiquement dans l'app "Comptabilite"
+        et l'app "Facturation" devient quasi-vide. Notre menu Factur-X
+        restait orphelin dans Facturation. Resultat : Claire (comptable)
+        ne voit pas notre menu Factur-X depuis l'app qu'elle utilise.
+
+        Fix : si Comptabilite Enterprise est presente, on rattache le
+        menu Factur-X au menu racine de Comptabilite."""
+        env = self.env
+        # Verification : account_accountant est-il installe ?
+        Module = env['ir.module.module'].sudo()
+        installed = Module.search_count([
+            ('name', '=', 'account_accountant'),
+            ('state', '=', 'installed'),
+        ])
+        if not installed:
+            return  # App Comptabilite pas installee, on laisse tel quel
+
+        # Trouver le menu racine "Comptabilite" Enterprise
+        IrModelData = env['ir.model.data'].sudo()
+        try:
+            menu_accounting = IrModelData._xmlid_to_res_id(
+                'account_accountant.menu_accounting', raise_if_not_found=False
+            )
+        except Exception:
+            menu_accounting = False
+        if not menu_accounting:
+            return  # XmlID Enterprise pas trouve
+
+        # Trouver notre menu "Facturation electronique" (parent Factur-X)
+        try:
+            menu_reception = IrModelData._xmlid_to_res_id(
+                'facturx_community.menu_facturx_reception_root',
+                raise_if_not_found=False,
+            )
+        except Exception:
+            menu_reception = False
+        if menu_reception:
+            Menu = env['ir.ui.menu'].sudo().browse(menu_reception)
+            if Menu.exists() and Menu.parent_id.id != menu_accounting:
+                Menu.write({'parent_id': menu_accounting})
+                _logger.info(
+                    "Factur-X : menu 'Facturation electronique' deplace "
+                    "sous l'app Comptabilite (Enterprise detectee)."
+                )
 
     @api.depends('move_type', 'facturx_generated', 'chorus_status', 'company_id')
     def _compute_chorus_can_send(self):
