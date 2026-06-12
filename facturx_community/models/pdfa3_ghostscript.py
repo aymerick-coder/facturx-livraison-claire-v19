@@ -218,9 +218,11 @@ def _build_ghostscript_command(src_path, dst_path, pdfa_def_path, icc_profile_pa
     Flags importants :
     -dPDFA=3                       : niveau PDF/A-3 (autorise les fichiers
                                      embarques, requis pour Factur-X)
-    -sPDFACompatibilityPolicy=1    : continuer meme en cas de non-conformite
+    -dPDFACompatibilityPolicy=1    : continuer meme en cas de non-conformite
                                      plutot que d'echouer (warnings au lieu
-                                     d'erreurs fatales)
+                                     d'erreurs fatales). NB: -d (pas -s) sinon
+                                     gs 10.x plante avec "rangecheck in
+                                     .putdeviceprops".
     -sColorConversionStrategy=RGB  : convertit toutes les couleurs en RGB
                                      (compatible OutputIntent sRGB)
     -dEmbedAllFonts=true           : embarque toutes les polices (clause 6.3)
@@ -239,7 +241,7 @@ def _build_ghostscript_command(src_path, dst_path, pdfa_def_path, icc_profile_pa
         '-dNOPAUSE',
         '-dQUIET',
         '-sDEVICE=pdfwrite',
-        '-sPDFACompatibilityPolicy=1',
+        '-dPDFACompatibilityPolicy=1',
         '-sColorConversionStrategy=RGB',
         '-sColorConversionStrategyForImages=RGB',
         '-sProcessColorModel=DeviceRGB',
@@ -251,9 +253,6 @@ def _build_ghostscript_command(src_path, dst_path, pdfa_def_path, icc_profile_pa
         # erreurs definitivement.
         '-dSubsetFonts=false',
         '-dCompressFonts=true',
-        # Ghostscript re-encode les fonts TrueType en CIDFontType2.
-        # Sans ce flag, les Widths internes ne matchent pas le glyph program.
-        '-dHaveTrueTypes=true',
         '-dDetectDuplicateImages=true',
         '-dCompatibilityLevel=1.7',
         '-dPDFSETTINGS=/printer',
