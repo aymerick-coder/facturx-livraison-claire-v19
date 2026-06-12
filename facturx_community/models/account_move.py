@@ -1,6 +1,7 @@
 import base64
 import logging
 from lxml import etree
+from markupsafe import Markup
 
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
@@ -331,10 +332,15 @@ class AccountMove(models.Model):
                                   "identifiants PISTE valides pour passer en mode réel.",
             })
             self.message_post(
-                body=("<b>[MODE DÉMO]</b> Envoi Chorus Pro simulé.<br/>"
-                      "ID factice retourné : <b>%s</b><br/>"
-                      "<i>Aucune transmission réelle n'a eu lieu.</i>" % fake_id),
-                subject="Envoi Chorus Pro (DÉMO)",
+                body=Markup(
+                    "<p><b>Mode démo — Envoi Chorus Pro simulé</b></p>"
+                    "<p>Aucune transmission réelle n'a eu lieu. "
+                    "Cette facture n'est PAS partie sur Chorus Pro.</p>"
+                    "<p>ID factice retourné : <b>%s</b></p>"
+                    "<p><i>Pour effectuer un envoi réel, décochez "
+                    "« Mode démo » dans la configuration Factur-X.</i></p>"
+                ) % fake_id,
+                subject="Envoi Chorus Pro (mode démo)",
             )
             return {
                 'type': 'ir.actions.client',
@@ -490,7 +496,7 @@ class AccountMove(models.Model):
                 'chorus_message': clear_message,
             })
             self.message_post(
-                body=(
+                body=Markup(
                     "<p><b>Échec du dépôt Chorus Pro</b></p>"
                     "<p>%s</p>"
                     "<p><i>Le détail technique complet est disponible dans "
@@ -536,8 +542,12 @@ class AccountMove(models.Model):
             'chorus_status': 'sent',
             'chorus_message': clear_message,
         })
+        # IMPORTANT Odoo 17+ : le body est echappe HTML par defaut (anti-XSS).
+        # Pour que le HTML soit rendu correctement dans le chatter (et pas
+        # affiche en texte brut avec les balises visibles), il FAUT le
+        # wrapper dans Markup() qui signale "HTML safe pre-construit".
         self.message_post(
-            body=(
+            body=Markup(
                 "<p><b>Facture transmise à Chorus Pro</b></p>"
                 "<p>Le dépôt a été accepté par Chorus Pro. "
                 "Vous pouvez maintenant suivre son cycle de vie depuis le "
