@@ -1001,18 +1001,18 @@ class FacturXMLBuilder:
         name = etree.SubElement(parent, '{%s}Name' % self.NAMESPACES['ram'])
         name.text = partner.name
 
-        # 3. SpecifiedLegalOrganization with SIREN (9 digits, derived from SIRET)
-        # SIREN is the legal entity identifier required by the French 2026 reform
-        siren = None
+        # 3. SpecifiedLegalOrganization with SIRET (14 digits)
+        # AIFE Chorus Pro requires SIRET (14 chiffres) in SpecifiedLegalOrganization,
+        # NOT SIREN (9 chiffres). Bug corrige le 10/06/2026 sur la v2.6 :
+        # AIFE rejette la facture (HTTP 401) si on emet SIREN ici.
+        # Mapping AIFE Chorus : <ram:ID schemeID="0002">SIRET14</ram:ID>
         if siret and len(siret) == 14 and siret.isdigit():
-            siren = siret[:9]
-        if siren:
             legal_org = etree.SubElement(
                 parent, '{%s}SpecifiedLegalOrganization' % self.NAMESPACES['ram']
             )
-            siren_el = etree.SubElement(legal_org, '{%s}ID' % self.NAMESPACES['ram'])
-            siren_el.set('schemeID', '0002')  # 0002 = SIREN (personne morale)
-            siren_el.text = siren
+            siret_el = etree.SubElement(legal_org, '{%s}ID' % self.NAMESPACES['ram'])
+            siret_el.set('schemeID', '0002')  # 0002 = personne morale (SIRET pour AIFE)
+            siret_el.text = siret  # SIRET 14 chiffres requis par AIFE Chorus Pro
 
         # 4. PostalTradeAddress
         # In MINIMUM profile, only CountryID is allowed (no zip, street, city).
