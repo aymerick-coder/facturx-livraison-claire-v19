@@ -86,15 +86,13 @@
                         domain="[('event_date', '&gt;=', context_today().strftime('%Y-%m-%d 00:00:00'))]"/>
                 <filter string="7 derniers jours" name="filter_week"
                         domain="[('event_date', '&gt;=', (context_today() - relativedelta(days=7)).strftime('%Y-%m-%d'))]"/>
-                <group expand="0" string="Regrouper par">
+                <group string="Regrouper par">
                     <filter string="Facture" name="group_move"
                             context="{'group_by': 'move_id'}"/>
                     <filter string="Nouvel état" name="group_to_state"
                             context="{'group_by': 'to_state'}"/>
                     <filter string="Origine" name="group_actor"
                             context="{'group_by': 'actor'}"/>
-                    <filter string="Jour" name="group_day"
-                            context="{'group_by': 'event_date:day'}"/>
                 </group>
             </search>
         </field>

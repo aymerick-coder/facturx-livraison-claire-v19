@@ -90,7 +90,7 @@
                         name="filter_stale"
                         domain="[('facturx_lifecycle_last_event_date','&lt;',
                                   (context_today() - relativedelta(hours=48)).strftime('%Y-%m-%d %H:%M:%S'))]"/>
-                <group expand="0" string="Regrouper par">
+                <group string="Regrouper par">
                     <filter string="Client / Fournisseur" name="group_partner"
                             context="{'group_by': 'partner_id'}"/>
                     <filter string="État lifecycle" name="group_state"
