@@ -379,7 +379,13 @@ class AccountMove(models.Model):
                 detail = json.dumps(resp_json, indent=2, ensure_ascii=False)
             except Exception:
                 detail = deposit_resp.text or "(corps vide)"
-            headers_summary = "Content-Type: %s" % deposit_resp.headers.get('Content-Type', 'n/a')
+            # Diagnostic complet : tous les headers de reponse + body
+            all_headers = "\n".join(
+                "  %s: %s" % (k, v) for k, v in deposit_resp.headers.items()
+            )
+            headers_summary = "Tous les headers reponse :\n%s\n\nURL appelee : %s" % (
+                all_headers, deposit_resp.url
+            )
             full_msg = (
                 "HTTP %s\nHeaders: %s\nBody: %s"
             ) % (deposit_resp.status_code, headers_summary, detail[:2000])
