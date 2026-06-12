@@ -5,7 +5,7 @@
         <field name="name">facturx.archive.tree</field>
         <field name="model">facturx.archive</field>
         <field name="arch" type="xml">
-            <tree string="Archives légales"
+            <list string="Archives légales"
                   decoration-success="integrity_check_result == 'valid'"
                   decoration-danger="integrity_check_result == 'altered'"
                   decoration-warning="integrity_check_result == 'missing'"
@@ -23,7 +23,7 @@
                        decoration-danger="integrity_check_result == 'altered'"/>
                 <field name="expires_at"/>
                 <field name="company_id" groups="base.group_multi_company"/>
-            </tree>
+            </list>
         </field>
     </record>
 

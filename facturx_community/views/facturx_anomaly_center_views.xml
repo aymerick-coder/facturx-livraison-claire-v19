@@ -16,7 +16,7 @@
         <field name="model">account.move</field>
         <field name="priority">99</field>
         <field name="arch" type="xml">
-            <tree string="Factures à corriger"
+            <list string="Factures à corriger"
                   create="false" delete="false" edit="false"
                   default_order="facturx_lifecycle_last_event_date desc, id desc"
                   decoration-danger="facturx_lifecycle_state in ('in_anomaly','rejected')"
@@ -60,7 +60,7 @@
 
                 <field name="facturx_has_anomaly" column_invisible="True"/>
                 <field name="facturx_status" column_invisible="True"/>
-            </tree>
+            </list>
         </field>
     </record>
 

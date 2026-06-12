@@ -17,7 +17,7 @@
         <field name="model">account.move</field>
         <field name="priority">100</field>
         <field name="arch" type="xml">
-            <tree string="À traiter en priorité"
+            <list string="À traiter en priorité"
                   create="false" delete="false" edit="false"
                   default_order="facturx_lifecycle_last_event_date desc"
                   decoration-danger="facturx_lifecycle_state in ('in_anomaly','rejected')"
@@ -37,7 +37,7 @@
                 <field name="facturx_lifecycle_last_event_date" string="Dernière maj"
                        widget="datetime" optional="show"/>
                 <field name="company_id" groups="base.group_multi_company" optional="show"/>
-            </tree>
+            </list>
         </field>
     </record>
 

@@ -24,7 +24,7 @@
         <field name="model">facturx.lifecycle.event</field>
         <field name="priority">20</field>
         <field name="arch" type="xml">
-            <tree string="Historique de traitement"
+            <list string="Historique de traitement"
                   create="false" delete="false" edit="false"
                   default_order="event_date desc"
                   decoration-success="severity == 'success'"
@@ -40,7 +40,7 @@
                 <field name="actor" string="Origine" optional="show"/>
                 <field name="user_id" string="Utilisateur" optional="hide"/>
                 <field name="from_state" string="Provient de" optional="hide"/>
-            </tree>
+            </list>
         </field>
     </record>
 

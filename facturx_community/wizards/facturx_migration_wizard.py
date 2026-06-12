@@ -150,7 +150,7 @@ class FacturxMigrationWizard(models.TransientModel):
             'type': 'ir.actions.act_window',
             'name': _('Factures générées par le natif Odoo'),
             'res_model': 'account.move',
-            'view_mode': 'tree,form',
+            'view_mode': 'list,form',
             'domain': [
                 ('company_id', '=', self.company_id.id),
                 ('move_type', 'in', ('out_invoice', 'out_refund')),
