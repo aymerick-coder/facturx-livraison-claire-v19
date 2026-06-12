@@ -229,6 +229,11 @@ def _build_ghostscript_command(src_path, dst_path, pdfa_def_path, icc_profile_pa
     """
     cmd = [
         'gs',
+        # -dNOSAFER : Ghostscript >= 10 bloque par defaut la lecture/ecriture
+        # de fichiers. Sans NOSAFER, gs n'arrive pas a lire le PDFA_def.ps
+        # ou le profil ICC -> conversion echoue silencieusement et le PDF
+        # de sortie n'a ni OutputIntent ni glyphes propres. CRITIQUE.
+        '-dNOSAFER',
         '-dPDFA=3',
         '-dBATCH',
         '-dNOPAUSE',
@@ -239,8 +244,16 @@ def _build_ghostscript_command(src_path, dst_path, pdfa_def_path, icc_profile_pa
         '-sColorConversionStrategyForImages=RGB',
         '-sProcessColorModel=DeviceRGB',
         '-dEmbedAllFonts=true',
-        '-dSubsetFonts=true',
+        # -dSubsetFonts=false : embarque les fonts COMPLETES (pas en subset).
+        # Le subset incoherent de Lato/Liberation cause 94 erreurs FNFE/Iopole
+        # "glyph width information shall be consistent" (clause 6.2.11.5).
+        # Forcer le full embed augmente la taille du PDF mais elimine ces
+        # erreurs definitivement.
+        '-dSubsetFonts=false',
         '-dCompressFonts=true',
+        # Ghostscript re-encode les fonts TrueType en CIDFontType2.
+        # Sans ce flag, les Widths internes ne matchent pas le glyph program.
+        '-dHaveTrueTypes=true',
         '-dDetectDuplicateImages=true',
         '-dCompatibilityLevel=1.7',
         '-dPDFSETTINGS=/printer',
