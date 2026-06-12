@@ -1586,7 +1586,11 @@ class FacturXMLBuilder:
             )
 
             # Tax per line
-            # XSD order: TypeCode → ExemptionReason? → CategoryCode → RateApplicablePercent
+            # XSD order: TypeCode → CategoryCode → RateApplicablePercent
+            # NB: ExemptionReason est interdit au niveau LIGNE en EN 16931
+            # (Schematron CIUS FR / FNFE-MPE strict). Il doit etre emis
+            # UNIQUEMENT au niveau HEADER (voir tax_group plus haut).
+            # Le porter aussi sur la ligne casse la validation Schematron.
             for tax in line.tax_ids:
                 line_tax = etree.SubElement(
                     line_settlement, '{%s}ApplicableTradeTax' % self.NAMESPACES['ram']
@@ -1595,13 +1599,6 @@ class FacturXMLBuilder:
                 line_type.text = 'VAT'
 
                 category_code = self._get_tax_category_code(tax)
-                # ExemptionReason MUST come before CategoryCode per XSD
-                if tax.facturx_exemption_reason:
-                    exemption_el = etree.SubElement(
-                        line_tax, '{%s}ExemptionReason' % self.NAMESPACES['ram']
-                    )
-                    exemption_el.text = tax.facturx_exemption_reason
-
                 line_cat = etree.SubElement(
                     line_tax, '{%s}CategoryCode' % self.NAMESPACES['ram']
                 )
