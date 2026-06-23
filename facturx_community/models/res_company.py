@@ -10,7 +10,16 @@ class ResCompany(models.Model):
     siret = fields.Char(
         string='SIRET',
         size=14,
-        help='14-digit SIRET number (SIREN + NIC)',
+        compute='_compute_siret_from_registry',
+        inverse='_inverse_siret_to_registry',
+        store=True,
+        readonly=False,
+        help='14-digit SIRET number (SIREN + NIC). '
+             'FIX 23/06 : sync bidirectionnel avec `company_registry`, '
+             'le champ standard d\'Odoo 19+ pour le N° de registre. '
+             'En Odoo 19, l\'UI fiche société écrit dans `company_registry` '
+             'quand l\'utilisateur saisit le SIRET → on synchronise pour '
+             'que tout le code lisant `company.siret` reste fonctionnel.',
     )
     siren = fields.Char(
         string='SIREN',
@@ -51,6 +60,32 @@ class ResCompany(models.Model):
         string='Capital social',
         help='Company share capital in euros',
     )
+
+    @api.depends('company_registry')
+    def _compute_siret_from_registry(self):
+        """FIX 23/06 : sync `siret` depuis `company_registry` (Odoo 19+).
+
+        En Odoo 19, le champ standard pour stocker le SIRET français est
+        `res.company.company_registry` (champ générique multi-pays). Quand
+        l'utilisateur saisit le SIRET dans l'UI (vue fiche société), Odoo
+        écrit dans `company_registry`, PAS dans notre champ custom `siret`
+        défini par ce module avant l'arrivée de `company_registry`.
+
+        Sans ce compute, `company.siret` reste vide même quand l'utilisateur
+        a renseigné son SIRET → erreur "SIRET required" sur génération
+        Factur-X. Bug signalé par Claire HANZO (Logitud) le 23/06/2026.
+        """
+        for company in self:
+            if company.company_registry:
+                company.siret = company.company_registry
+
+    def _inverse_siret_to_registry(self):
+        """Symétrique : si on écrit `siret` directement (cas legacy ou
+        imports), on met à jour `company_registry` pour rester cohérent
+        avec l'UI Odoo 19+."""
+        for company in self:
+            if company.siret and company.company_registry != company.siret:
+                company.company_registry = company.siret
 
     @api.depends('siret')
     def _compute_siren(self):
