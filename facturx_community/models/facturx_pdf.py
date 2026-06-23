@@ -87,7 +87,11 @@ class AccountMoveFacturxPdf(models.Model):
                 })
                 _logger.info('Factur-X PDF generated for invoice %s', move.name)
             except Exception as e:
-                _logger.error('Factur-X PDF generation failed for %s: %s', move.name, e)
+                # FIX 23/06 : log la stack trace COMPLÈTE pour debug pypdf 5.x
+                # vs PyPDF2 (Odoo 19 + Python 3.13).
+                _logger.exception(
+                    'Factur-X PDF generation failed for %s: %s', move.name, e,
+                )
                 raise UserError(_('Factur-X PDF generation failed: %s') % str(e))
 
     def _get_invoice_pdf(self):
