@@ -10,7 +10,14 @@ _REQUIRED_PACKAGES = {
     'facturx': 'factur-x',
     'lxml': 'lxml',
     'requests': 'requests',
-    'PyPDF2': 'PyPDF2',
+    # FIX 23/06 : PyPDF2 retiré des deps obligatoires.
+    # Odoo 19 + Python 3.13 utilise nativement pypdf (>= 5.x, API snake_case).
+    # PyPDF2 3.0.x est devenu un wrapper de dépréciation : son simple import
+    # déclenche un chemin legacy dans odoo/tools/pdf/__init__.py (ligne 485
+    # cloneReaderDocumentRoot) qui lève DeprecationError → crash sur toute
+    # impression PDF Odoo (factures, devis, BL). Diagnostic : C. HANZO 23/06.
+    # Le seul usage interne (fallback OCR dans facturx_ocr.py) a été migré
+    # vers pypdf, déjà présent comme dépendance transitive d'Odoo 17+.
 }
 
 # OPTIONAL : best-effort install. Module installs cleanly even if missing,
