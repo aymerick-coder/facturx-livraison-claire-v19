@@ -20,6 +20,59 @@ except ImportError:
     )
 
 
+def _patch_pypdf_replace_object():
+    """FIX 23/06 : monkey-patch pypdf 5.x pour compatibilité factur-x 4.3.
+
+    Bug : factur-x 4.3 + pypdf 5.x lève
+    "TypeError: unsupported operand type(s) for -: 'DecodedStreamObject' and 'int'"
+    dans `_facturx_update_metadata_add_attachment` ligne ~867 de facturx.py
+    qui appelle `pdf_writer._replace_object(existing_metadata_obj, ...)`
+    en passant un `DecodedStreamObject` au lieu d'une `IndirectObject`.
+
+    pypdf 5.x essaie alors de faire `indirect_reference - 1` → crash.
+
+    Le patch détecte ce cas et récupère la vraie indirect_reference depuis
+    l'attribut `.indirect_reference` du stream. Si absent, on no-op (l'objet
+    n'a pas besoin d'être remplacé).
+
+    Bug signalé par Claire HANZO (Logitud) 23/06/2026. Diagnostic complet
+    par le module en activant _logger.exception() dans action_generate_facturx_pdf.
+    """
+    try:
+        from pypdf._writer import PdfWriter
+        from pypdf.generic import DecodedStreamObject
+
+        if getattr(PdfWriter, '_facturx_patched_replace', False):
+            return  # déjà patché (cas de reload module)
+
+        _original_replace = PdfWriter._replace_object
+
+        def _patched_replace_object(self, indirect_reference, obj):
+            # Cas bug factur-x 4.3 : on reçoit un stream au lieu d'une IndirectObject
+            if isinstance(indirect_reference, DecodedStreamObject):
+                ref = getattr(indirect_reference, 'indirect_reference', None)
+                if ref is not None:
+                    indirect_reference = ref
+                else:
+                    # Pas de référence : on retourne l'objet sans remplacement
+                    return obj
+            return _original_replace(self, indirect_reference, obj)
+
+        PdfWriter._replace_object = _patched_replace_object
+        PdfWriter._facturx_patched_replace = True
+        _logger.info(
+            'Monkey-patch pypdf._writer.PdfWriter._replace_object appliqué '
+            '(compat factur-x 4.x + pypdf 5.x)'
+        )
+    except ImportError:
+        # pypdf pas dispo : rien à patcher
+        pass
+
+
+# Appliquer le patch au chargement du module
+_patch_pypdf_replace_object()
+
+
 FACTURX_PROFILE_MAP = {
     'minimum': 'minimum',
     'basicwl': 'basicwl',
