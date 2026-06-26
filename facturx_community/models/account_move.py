@@ -1,5 +1,6 @@
 import base64
 import logging
+import re
 from lxml import etree
 from markupsafe import Markup
 
@@ -801,13 +802,24 @@ class AccountMove(models.Model):
         errors = []
 
         company = self.company_id
-        if not company.siret:
+        # FIX 26/06 (retour Claire HANZO / Logitud) : le SIRET société peut
+        # être saisi dans plusieurs champs selon Odoo 19 / l10n_fr — notre
+        # champ `siret`, le champ natif `company_registry`, OU sur le
+        # partenaire de la société (`company.partner_id.company_registry`) —
+        # et souvent AVEC des espaces ("320 717 073 31344"). On le résout de
+        # façon robuste pour ne plus déclencher un faux "SIRET vide".
+        company_siret = re.sub(r'\D', '', (
+            getattr(company, 'siret', '') or company.company_registry
+            or (company.partner_id and company.partner_id.company_registry)
+            or ''
+        ))
+        if not company_siret:
             errors.append(_('Company SIRET number is required.'))
-        elif len(company.siret) != 14 or not company.siret.isdigit():
+        elif len(company_siret) != 14:
             errors.append(_(
                 'Company SIRET must be exactly 14 digits (current: "%s"). '
                 'A valid SIRET is required to derive the SIREN for Factur-X.'
-            ) % company.siret)
+            ) % company_siret)
         if not company.vat:
             errors.append(_('Company VAT number is required.'))
         if not company.street:
@@ -1102,8 +1114,15 @@ class FacturXMLBuilder:
 
         # Seller
         seller = etree.SubElement(agreement, '{%s}SellerTradeParty' % self.NAMESPACES['ram'])
-        seller_siret = self.invoice.company_id.siret
-        self._add_trade_party(seller, self.invoice.company_id.partner_id, siret=seller_siret)
+        # FIX 26/06 : même résolution robuste du SIRET société côté XML
+        # (siret / company_registry / partenaire société, espaces nettoyés).
+        _seller_co = self.invoice.company_id
+        seller_siret = re.sub(r'\D', '', (
+            getattr(_seller_co, 'siret', '') or _seller_co.company_registry
+            or (_seller_co.partner_id and _seller_co.partner_id.company_registry)
+            or ''
+        )) or False
+        self._add_trade_party(seller, _seller_co.partner_id, siret=seller_siret)
 
         # Buyer
         buyer = etree.SubElement(agreement, '{%s}BuyerTradeParty' % self.NAMESPACES['ram'])
@@ -1128,6 +1147,8 @@ class FacturXMLBuilder:
             or getattr(commercial, 'company_registry', False)
             or False
         )
+        # FIX 26/06 : nettoyer les espaces éventuels du SIRET acheteur.
+        buyer_siret = re.sub(r'\D', '', buyer_siret or '') or False
         self._add_trade_party(buyer, buyer_partner, siret=buyer_siret)
 
         # BuyerOrderReferencedDocument (engagement juridique / PO number)

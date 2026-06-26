@@ -14,7 +14,14 @@ class ResPartner(models.Model):
     siret = fields.Char(
         string='SIRET',
         size=14,
-        help='14-digit SIRET number for B2B invoicing',
+        compute='_compute_partner_siret_from_registry',
+        inverse='_inverse_partner_siret_to_registry',
+        store=True,
+        readonly=False,
+        help="Numéro SIRET. FIX 26/06 (retour Claire HANZO / Logitud) : "
+             "synchronisé avec le champ natif `company_registry` (Odoo 19+) "
+             "pour ne PAS dupliquer la donnée — remplir l'un ou l'autre "
+             "revient au même, et le code lisant `partner.siret` reste OK.",
     )
 
     # ========================================================================
@@ -36,18 +43,22 @@ class ResPartner(models.Model):
              "Obligatoire pour de nombreux destinataires publics.",
     )
 
-    @api.constrains('siret')
-    def _check_siret(self):
+    @api.depends('company_registry')
+    def _compute_partner_siret_from_registry(self):
+        """FIX 26/06 : `siret` = `company_registry` (champ natif Odoo 19+),
+        espaces nettoyés. Évite la duplication de donnée signalée par Claire
+        HANZO (Logitud) et garde `partner.siret` fonctionnel pour le code
+        de génération Factur-X."""
         for partner in self:
-            if partner.siret:
-                # Accept SIREN (9 digits) OR SIRET (14 digits).
-                # A received invoice may carry only the SIREN (schemeID 0002)
-                # when the supplier did not disclose the establishment NIC.
-                if not re.match(r'^\d{9}(\d{5})?$', partner.siret):
-                    raise ValidationError(
-                        _('SIRET must be 9 digits (SIREN) or 14 digits '
-                          '(SIREN + NIC).')
-                    )
+            reg = re.sub(r'\s+', '', partner.company_registry or '')
+            partner.siret = reg or False
+
+    def _inverse_partner_siret_to_registry(self):
+        """Symétrique : si on écrit `siret` directement, on répercute sur
+        `company_registry` pour rester cohérent avec l'UI native."""
+        for partner in self:
+            if partner.siret and partner.company_registry != partner.siret:
+                partner.company_registry = partner.siret
 
     def _register_hook(self):
         """Hook Odoo appelé au démarrage de chaque worker.
