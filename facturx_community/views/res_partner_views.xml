@@ -1,19 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
 
-    <record id="view_partner_form_facturx" model="ir.ui.view">
-        <field name="name">res.partner.form.facturx</field>
-        <field name="model">res.partner</field>
-        <field name="inherit_id" ref="base.view_partner_form"/>
-        <field name="arch" type="xml">
-            <!-- Retour Claire 08/06 : Code service + EJ Chorus Pro doivent
-                 etre AU NIVEAU FACTURE uniquement, PAS sur la fiche partner.
-                 Les champs restent dans le model res_partner pour autofill
-                 futur eventuel, mais ne sont plus exposes en UI. -->
-            <xpath expr="//field[@name='vat']" position="after">
-                <field name="siret"/>
-            </xpath>
-        </field>
-    </record>
+    <!-- FIX 26/06 (retour Claire HANZO / Logitud) : on N'AJOUTE PLUS de champ
+         SIRET custom sur la fiche partenaire. Le SIRET se saisit dans le champ
+         NATIF Odoo `company_registry` (affiché par la localisation française
+         l10n_fr sur les contacts FR). Évite le doublon de donnée signalé par
+         Claire. Le champ `siret` reste dans le modèle (synchronisé avec
+         company_registry) pour la rétro-compatibilité du code, mais n'est plus
+         exposé en UI. -->
+
+    <!-- Code service + EJ Chorus Pro : AU NIVEAU FACTURE uniquement (retour
+         Claire 08/06), donc rien ici non plus. -->
 
 </odoo>

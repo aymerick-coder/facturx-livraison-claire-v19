@@ -110,6 +110,16 @@ class AccountMove(models.Model):
              "Émis dans <BuyerOrderReferencedDocument> du XML CII. "
              "Si vide, prend la valeur configurée sur la fiche du client.",
     )
+    # FIX 26/06 (demande Claire HANZO / Logitud) : 3e référence Chorus Pro.
+    contract_reference = fields.Char(
+        string='Numéro de marché',
+        size=50,
+        copy=False,
+        help="Numéro de marché public (Chorus Pro) à transmettre. "
+             "Émis dans <ContractReferencedDocument> du XML CII Factur-X "
+             "(BT-12). Laisser vide si la facture n'est pas rattachée à "
+             "un marché.",
+    )
 
     # --- Mini-connecteur Chorus Pro (pont temporaire) ---
     chorus_sent_id = fields.Char(
@@ -167,6 +177,10 @@ class AccountMove(models.Model):
         cr.execute("""
             ALTER TABLE account_move
             ADD COLUMN IF NOT EXISTS chorus_message TEXT;
+        """)
+        cr.execute("""
+            ALTER TABLE account_move
+            ADD COLUMN IF NOT EXISTS contract_reference VARCHAR;
         """)
         cr.commit()
 
@@ -938,9 +952,17 @@ class AccountMove(models.Model):
                 )
                 engagement = orig_engagement or self.reversed_entry_id.ref or ''
 
+        # 3) Numéro de marché (BT-12) : priorité FACTURE, héritage avoir.
+        contract = getattr(self, 'contract_reference', '') or ''
+        if not contract:
+            is_refund = _get_move_type(self) in ('out_refund', 'in_refund')
+            if is_refund and hasattr(self, 'reversed_entry_id') and self.reversed_entry_id:
+                contract = getattr(self.reversed_entry_id, 'contract_reference', '') or ''
+
         return {
             'service_code': service_code,
             'engagement': engagement,
+            'contract': contract,
         }
 
     def _post(self, soft=True):
@@ -1159,6 +1181,18 @@ class FacturXMLBuilder:
             )
             order_id = etree.SubElement(order_ref, '{%s}IssuerAssignedID' % self.NAMESPACES['ram'])
             order_id.text = engagement
+
+        # ContractReferencedDocument (BT-12 : numéro de marché public).
+        # XSD CII : vient juste APRÈS BuyerOrderReferencedDocument.
+        contract = buyer_refs.get('contract') or ''
+        if contract:
+            contract_ref = etree.SubElement(
+                agreement, '{%s}ContractReferencedDocument' % self.NAMESPACES['ram']
+            )
+            contract_id = etree.SubElement(
+                contract_ref, '{%s}IssuerAssignedID' % self.NAMESPACES['ram']
+            )
+            contract_id.text = contract
 
     def _add_trade_party(self, parent, partner, siret=False):
         """Add a TradeParty (seller or buyer) to the XML.

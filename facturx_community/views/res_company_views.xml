@@ -8,7 +8,12 @@
         <field name="arch" type="xml">
             <xpath expr="//group[@name='social_media']" position="before">
                 <group string="Factur-X / Facturation Électronique" name="facturx_info">
-                    <field name="siret"/>
+                    <!-- FIX 26/06 (retour Claire HANZO / Logitud) : on affiche le
+                         champ NATIF Odoo `company_registry` (= SIRET en France)
+                         au lieu de notre ancien champ custom `siret`. Plus de
+                         doublon de donnée : tout le code lit company_registry. -->
+                    <field name="company_registry" string="SIRET"
+                           placeholder="14 chiffres (SIREN + NIC)"/>
                     <field name="siren" readonly="1"/>
                     <field name="nic" readonly="1"/>
                     <field name="naf_code"/>

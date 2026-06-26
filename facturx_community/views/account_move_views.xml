@@ -103,6 +103,8 @@
                                    placeholder="Code service Chorus Pro (laisser vide pour reprendre celui du client)"/>
                             <field name="chorus_pro_engagement"
                                    placeholder="Numéro EJ (laisser vide pour reprendre celui du client)"/>
+                            <field name="contract_reference"
+                                   placeholder="Numéro de marché public (laisser vide si non applicable)"/>
                         </group>
                     </group>
 
