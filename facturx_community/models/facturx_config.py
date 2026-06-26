@@ -12,6 +12,16 @@ class FacturxConfig(models.Model):
         default=lambda self: self.env.company,
     )
 
+    @api.depends('company_id')
+    def _compute_display_name(self):
+        # FIX 26/06 : sans ça, Odoo affiche "facturx.config,1" (moche).
+        for rec in self:
+            label = _('Configuration Factur-X')
+            rec.display_name = (
+                '%s — %s' % (label, rec.company_id.name)
+                if rec.company_id else label
+            )
+
     # ========================================================================
     # Chorus Pro - Mini-connecteur B2G (secteur public)
     # ========================================================================
