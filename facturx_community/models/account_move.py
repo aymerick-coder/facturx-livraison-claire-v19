@@ -585,8 +585,10 @@ class AccountMove(models.Model):
             'tag': 'display_notification',
             'params': {
                 'type': 'success',
-                'title': "Envoi Chorus Pro réussi",
-                'message': "ID Chorus : %s" % chorus_id,
+                'title': "Facture transmise à Chorus Pro",
+                'message': "Flux reçu (n° %s). Traitement asynchrone : "
+                           "vérifiez le statut final sur le portail "
+                           "Chorus Pro." % chorus_id,
                 'sticky': False,
                 'next': {'type': 'ir.actions.client', 'tag': 'soft_reload'},
             },
