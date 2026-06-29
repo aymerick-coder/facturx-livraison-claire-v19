@@ -542,14 +542,16 @@ class AccountMove(models.Model):
         # Message humain pour comptables (pas de JSON technique).
         # Le JSON brut reste accessible via les logs Odoo pour le support.
         clear_message = (
-            "Facture transmise et acceptée par Chorus Pro.\n\n"
+            "Facture transmise à Chorus Pro (flux reçu).\n\n"
             "Numéro de dépôt : %s\n"
             "Date du dépôt : %s\n"
             "Format : Factur-X (EN 16931)\n"
             "Environnement : %s\n\n"
-            "Vous pouvez désormais suivre l'état de cette facture "
-            "(reçue, mise à disposition, acceptée par le destinataire, "
-            "payée) directement sur le portail Chorus Pro."
+            "ATTENTION : le traitement Chorus est asynchrone. La réception "
+            "du flux ne garantit PAS son intégration. Vérifiez le statut "
+            "final (Intégré / Rejeté) sur le portail Chorus Pro > Suivi des "
+            "flux. Une fois intégrée, vous pourrez suivre le cycle de vie "
+            "de la facture (mise à disposition, acceptée, payée)."
         ) % (chorus_id, date_depot, env_label)
         self.write({
             'chorus_sent_id': str(chorus_id),
@@ -564,9 +566,11 @@ class AccountMove(models.Model):
         self.message_post(
             body=Markup(
                 "<p><b>Facture transmise à Chorus Pro</b></p>"
-                "<p>Le dépôt a été accepté par Chorus Pro. "
-                "Vous pouvez maintenant suivre son cycle de vie depuis le "
-                "portail Chorus Pro.</p>"
+                "<p>Le flux a été <b>transmis et reçu</b> par Chorus Pro. "
+                "<b>Attention :</b> le traitement (intégration) est "
+                "<b>asynchrone</b> — vérifiez le statut final "
+                "(<b>Intégré</b> ou <b>Rejeté</b>) sur le portail "
+                "Chorus Pro &gt; Suivi des flux.</p>"
                 "<ul>"
                 "<li><b>Numéro de dépôt :</b> %s</li>"
                 "<li><b>Date du dépôt :</b> %s</li>"
