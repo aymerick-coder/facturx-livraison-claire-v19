@@ -64,9 +64,16 @@ def _patch_pypdf_replace_object():
             'Monkey-patch pypdf._writer.PdfWriter._replace_object appliqué '
             '(compat factur-x 4.x + pypdf 5.x)'
         )
-    except ImportError:
-        # pypdf pas dispo : rien à patcher
-        pass
+    except Exception as e:
+        # FIX 29/06 : robustesse. Si le patch échoue (pypdf absent, OU API
+        # interne changée dans une future version de pypdf), on ne casse
+        # JAMAIS le chargement du module. Au pire le patch est sauté ; la
+        # génération PDF reste protégée par son propre try/except (cf.
+        # action_generate_facturx_pdf), donc pas de crash silencieux.
+        _logger.warning(
+            'Factur-X : monkey-patch pypdf non appliqué (%s). '
+            'La génération PDF reste protégée par ailleurs.', e,
+        )
 
 
 # Appliquer le patch au chargement du module
