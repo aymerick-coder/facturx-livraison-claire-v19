@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- FIX 29/06 (demande Claire HANZO / Logitud) : 3 références Chorus Pro
+         sur la commande client, reprises auto sur la facture. -->
+    <record id="view_order_form_facturx_chorus" model="ir.ui.view">
+        <field name="name">sale.order.form.facturx.chorus</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='client_order_ref']" position="after">
+                <field name="chorus_pro_service_code"
+                       placeholder="Code service Chorus Pro (secteur public)"/>
+                <field name="chorus_pro_engagement"
+                       placeholder="Numéro EJ"/>
+                <field name="contract_reference"
+                       placeholder="Numéro de marché public"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

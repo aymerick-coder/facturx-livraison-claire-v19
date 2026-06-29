@@ -1,6 +1,6 @@
 {
     'name': 'Factur-X Odoo 19 — Facturation Electronique B2B France EN 16931 (Reforme 2026)',
-    'version': '19.0.2.2.25',
+    'version': '19.0.2.2.26',
     'category': 'Accounting/E-Invoicing',
     'summary': 'Odoo 19 — Factur-X / e-invoicing EN 16931 PDF/A-3 XML CII ZUGFeRD UBL — emission & reception multi-canal (email IMAP, ZIP, dossier surveille, API REST) — conforme reforme 2026 DGFiP FNFE-MPE — valide 6/6 Iopole — multi-TVA — Chorus Pro — comptabilite francaise B2B B2G',
     'description': """
@@ -189,6 +189,7 @@ Site  : https://modulesfr.com
         'l10n_fr',
         'base_vat',
         'mail',
+        'sale',
     ],
     'external_dependencies': {
         'python': ['lxml', 'facturx'],
@@ -204,6 +205,7 @@ Site  : https://modulesfr.com
         'views/account_tax_views.xml',
         'views/product_template_views.xml',
         'views/account_move_views.xml',
+        'views/sale_order_views.xml',
         'views/res_company_views.xml',
         'views/res_partner_views.xml',
         'views/facturx_config_views.xml',
